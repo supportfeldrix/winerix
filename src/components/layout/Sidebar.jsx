@@ -136,11 +136,11 @@ function Sidebar({ onNavigate }) {
         <List disablePadding>{SECONDARY_NAV.map(renderNavItem)}</List>
       </Box>
 
-      {/* Footer — decorative grapevine branding (bottom-left) */}
+      {/* Footer — decorative grapevine branding */}
       <Box
         sx={{
           position: 'relative',
-          height: 150,
+          height: 180,
           flexShrink: 0,
           overflow: 'hidden',
         }}

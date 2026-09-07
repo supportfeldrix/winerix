@@ -25,7 +25,7 @@ function MainLayout({ user }) {
   const handleDrawerClose = () => setMobileOpen(false);
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default' }}>
+    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default', overflowX: 'hidden' }}>
       <TopBar title={title} user={user} onMenuClick={handleDrawerToggle} />
 
       {/* Navigation drawers */}
@@ -42,7 +42,7 @@ function MainLayout({ user }) {
           ModalProps={{ keepMounted: true }}
           sx={{
             display: { xs: 'block', md: 'none' },
-            '& .MuiDrawer-paper': { width: SIDEBAR_WIDTH, boxSizing: 'border-box' },
+            '& .MuiDrawer-paper': { width: SIDEBAR_WIDTH, boxSizing: 'border-box', overflowX: 'hidden' },
           }}
         >
           <Sidebar onNavigate={handleDrawerClose} />
@@ -54,7 +54,7 @@ function MainLayout({ user }) {
           open
           sx={{
             display: { xs: 'none', md: 'block' },
-            '& .MuiDrawer-paper': { width: SIDEBAR_WIDTH, boxSizing: 'border-box' },
+            '& .MuiDrawer-paper': { width: SIDEBAR_WIDTH, boxSizing: 'border-box', overflowX: 'hidden' },
           }}
         >
           <Sidebar />
@@ -68,6 +68,8 @@ function MainLayout({ user }) {
           flexGrow: 1,
           width: { md: `calc(100% - ${SIDEBAR_WIDTH}px)` },
           minWidth: 0,
+          maxWidth: '100%',
+          overflowX: 'hidden',
           display: 'flex',
           flexDirection: 'column',
         }}
