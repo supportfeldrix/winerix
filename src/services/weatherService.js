@@ -128,8 +128,8 @@ export async function getWeather(lat, lon) {
   const params = new URLSearchParams({
     latitude: String(lat),
     longitude: String(lon),
-    current: 'temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m',
-    daily: 'weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max,relative_humidity_2m_max',
+    current: 'temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,is_day',
+    daily: 'weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max,relative_humidity_2m_max,sunrise,sunset',
     timezone: 'auto',
     forecast_days: '7',
     wind_speed_unit: 'kmh',
@@ -173,6 +173,9 @@ export async function getWeather(lat, lon) {
         precipitation: c.precipitation,
         windSpeed: c.wind_speed_10m,
         weatherCode: c.weather_code,
+        // Open-Meteo returns is_day as 1 (day) / 0 (night). Default to day if
+        // the flag is absent so backgrounds never break.
+        isDay: c.is_day == null ? true : c.is_day === 1,
         time: c.time,
       },
       daily: days,

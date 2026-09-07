@@ -13,6 +13,7 @@ import UmbrellaOutlinedIcon from '@mui/icons-material/UmbrellaOutlined';
 import CloudOffOutlinedIcon from '@mui/icons-material/CloudOffOutlined';
 import PageContainer from '../components/layout/PageContainer';
 import WeatherIcon from '../components/weather/WeatherIcon';
+import { weatherBackground } from '../components/weather/weatherBackground';
 import {
   getVineyardLocations, geocodeLocation, getWeather, weatherCodeInfo, friendlyWeatherError,
 } from '../services/weatherService';
@@ -218,42 +219,83 @@ function Weather() {
         <Grid container spacing={{ xs: 2, md: 3 }}>
           {/* Current conditions */}
           <Grid item xs={12} md={5}>
-            <Card sx={{ height: '100%' }}>
-              <CardContent sx={{ p: { xs: 2.5, md: 3 } }}>
-                <Typography variant="h6" component="h2" sx={{ mb: 1.5 }}>Current Conditions</Typography>
-                <Divider sx={{ mb: 2 }} />
-                {(() => {
-                  const info = weatherCodeInfo(weather.current.weatherCode);
-                  return (
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.5, mb: 2.5 }}>
+            <Card sx={{ height: '100%', overflow: 'hidden' }}>
+              {(() => {
+                const info = weatherCodeInfo(weather.current.weatherCode);
+                const bg = weatherBackground(weather.current.weatherCode, weather.current.isDay);
+                return (
+                  <>
+                    {/* Hero band — dynamic vineyard background + white text */}
+                    <Box
+                      sx={{
+                        position: 'relative',
+                        px: { xs: 2.5, md: 3 },
+                        py: { xs: 3, md: 3.5 },
+                        color: 'common.white',
+                        overflow: 'hidden',
+                      }}
+                    >
                       <Box
+                        aria-hidden
                         sx={{
-                          width: 72, height: 72, borderRadius: 3, flexShrink: 0,
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          bgcolor: (t) => alpha(t.palette.primary.main, 0.1),
+                          position: 'absolute', inset: 0,
+                          backgroundImage: `url(${bg})`, backgroundSize: 'cover', backgroundPosition: 'center',
                         }}
-                      >
-                        <WeatherIcon iconKey={info.icon} sx={{ fontSize: '2.4rem' }} />
-                      </Box>
-                      <Box sx={{ minWidth: 0 }}>
-                        <Typography
-                          component="p"
-                          sx={{ fontFamily: '"Playfair Display", Georgia, serif', fontWeight: 700, fontSize: '3rem', lineHeight: 1 }}
-                        >
-                          {round(weather.current.temperature)}°C
+                      />
+                      <Box
+                        aria-hidden
+                        sx={{
+                          position: 'absolute', inset: 0,
+                          background: (t) =>
+                            `linear-gradient(180deg, ${alpha(t.palette.primary.dark, 0.4)} 0%, ${alpha(t.palette.primary.dark, 0.7)} 100%)`,
+                        }}
+                      />
+                      <Box sx={{ position: 'relative' }}>
+                        <Typography variant="h6" component="h2" sx={{ color: 'common.white', mb: 2 }}>
+                          Current Conditions
                         </Typography>
-                        <Typography variant="body1" sx={{ color: 'text.secondary' }}>{info.label}</Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.5 }}>
+                          <Box
+                            sx={{
+                              width: 72, height: 72, borderRadius: 3, flexShrink: 0,
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              bgcolor: (t) => alpha(t.palette.common.white, 0.18),
+                              backdropFilter: 'blur(2px)',
+                            }}
+                          >
+                            <WeatherIcon iconKey={info.icon} sx={{ fontSize: '2.4rem' }} color="common.white" />
+                          </Box>
+                          <Box sx={{ minWidth: 0 }}>
+                            <Typography
+                              component="p"
+                              sx={{
+                                fontFamily: '"Playfair Display", Georgia, serif', fontWeight: 700,
+                                fontSize: '3rem', lineHeight: 1, color: 'common.white',
+                                textShadow: '0 1px 10px rgba(0,0,0,0.35)',
+                              }}
+                            >
+                              {round(weather.current.temperature)}°C
+                            </Typography>
+                            <Typography variant="body1" sx={{ color: (t) => alpha(t.palette.common.white, 0.92) }}>
+                              {info.label}
+                            </Typography>
+                          </Box>
+                        </Box>
                       </Box>
                     </Box>
-                  );
-                })()}
-                <Grid container spacing={2}>
-                  <Grid item xs={6}><Metric icon={ThermostatOutlinedIcon} label="Feels like" value={`${round(weather.current.apparentTemperature)}°C`} /></Grid>
-                  <Grid item xs={6}><Metric icon={WaterDropOutlinedIcon} label="Humidity" value={`${round(weather.current.humidity)}%`} /></Grid>
-                  <Grid item xs={6}><Metric icon={AirOutlinedIcon} label="Wind" value={`${round(weather.current.windSpeed)} km/h`} /></Grid>
-                  <Grid item xs={6}><Metric icon={UmbrellaOutlinedIcon} label="Precipitation" value={`${weather.current.precipitation ?? 0} mm`} /></Grid>
-                </Grid>
-              </CardContent>
+
+                    {/* Metrics — solid surface for guaranteed readability */}
+                    <CardContent sx={{ p: { xs: 2.5, md: 3 } }}>
+                      <Grid container spacing={2}>
+                        <Grid item xs={6}><Metric icon={ThermostatOutlinedIcon} label="Feels like" value={`${round(weather.current.apparentTemperature)}°C`} /></Grid>
+                        <Grid item xs={6}><Metric icon={WaterDropOutlinedIcon} label="Humidity" value={`${round(weather.current.humidity)}%`} /></Grid>
+                        <Grid item xs={6}><Metric icon={AirOutlinedIcon} label="Wind" value={`${round(weather.current.windSpeed)} km/h`} /></Grid>
+                        <Grid item xs={6}><Metric icon={UmbrellaOutlinedIcon} label="Precipitation" value={`${weather.current.precipitation ?? 0} mm`} /></Grid>
+                      </Grid>
+                    </CardContent>
+                  </>
+                );
+              })()}
             </Card>
           </Grid>
 
