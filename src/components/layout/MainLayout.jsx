@@ -42,7 +42,13 @@ function MainLayout({ user }) {
           ModalProps={{ keepMounted: true }}
           sx={{
             display: { xs: 'block', md: 'none' },
-            '& .MuiDrawer-paper': { width: SIDEBAR_WIDTH, boxSizing: 'border-box', overflowX: 'hidden' },
+            '& .MuiDrawer-paper': {
+              width: SIDEBAR_WIDTH,
+              boxSizing: 'border-box',
+              height: '100vh',
+              overflowX: 'hidden',
+              overflowY: 'hidden',
+            },
           }}
         >
           <Sidebar onNavigate={handleDrawerClose} />
@@ -54,7 +60,13 @@ function MainLayout({ user }) {
           open
           sx={{
             display: { xs: 'none', md: 'block' },
-            '& .MuiDrawer-paper': { width: SIDEBAR_WIDTH, boxSizing: 'border-box', overflowX: 'hidden' },
+            '& .MuiDrawer-paper': {
+              width: SIDEBAR_WIDTH,
+              boxSizing: 'border-box',
+              height: '100vh',
+              overflowX: 'hidden',
+              overflowY: 'hidden',
+            },
           }}
         >
           <Sidebar />

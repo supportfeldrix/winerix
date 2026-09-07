@@ -8,7 +8,11 @@ import { useTheme } from '@mui/material/styles';
 import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
 import EventNoteOutlinedIcon from '@mui/icons-material/EventNoteOutlined';
+import PendingActionsOutlinedIcon from '@mui/icons-material/PendingActionsOutlined';
+import PlayCircleOutlineOutlinedIcon from '@mui/icons-material/PlayCircleOutlineOutlined';
+import CheckCircleOutlineOutlinedIcon from '@mui/icons-material/CheckCircleOutlineOutlined';
 import PageContainer from '../components/layout/PageContainer';
+import StatCard from '../components/dashboard/StatCard';
 import PlannerCard from '../components/planner/PlannerCard';
 import PlannerTable from '../components/planner/PlannerTable';
 import PlannerForm from '../components/planner/PlannerForm';
@@ -63,6 +67,21 @@ function Planner() {
     });
   }, [records, search, statusFilter]);
 
+  // Summary metrics computed from the already-loaded tasks (no extra query).
+  const summary = useMemo(() => {
+    const total = records.length;
+    let pending = 0;
+    let inProgress = 0;
+    let completed = 0;
+    records.forEach((r) => {
+      const status = (r.status || '').toLowerCase();
+      if (status === 'pending') pending += 1;
+      if (status === 'in_progress') inProgress += 1;
+      if (status === 'completed') completed += 1;
+    });
+    return { total, pending, inProgress, completed };
+  }, [records]);
+
   const openAdd = () => { setEditing(null); setFormOpen(true); };
   const openEdit = (r) => { setEditing(r); setFormOpen(true); };
   const handleView = (r) => navigate(`/planner/${r.id}`);
@@ -88,7 +107,7 @@ function Planner() {
   const noMatches = !loading && records.length > 0 && filtered.length === 0;
 
   return (
-    <PageContainer>
+    <PageContainer maxWidth={1600} sx={{ px: { xs: 2, sm: 3, md: 4, lg: 5 } }}>
       <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'center' }, justifyContent: 'space-between', gap: 2, mb: 1 }}>
         <Box>
           <Typography variant="h2" component="h1" sx={{ mb: 0.5 }}>Planner</Typography>
@@ -96,6 +115,36 @@ function Planner() {
         </Box>
         <Button variant="contained" color="primary" startIcon={<AddOutlinedIcon />} onClick={openAdd} sx={{ flexShrink: 0 }}>Add Task</Button>
       </Box>
+
+      {!noneAtAll && (
+        <Grid container spacing={{ xs: 2, md: 3 }} sx={{ mt: 1, mb: 1 }}>
+          {loading ? (
+            [0, 1, 2, 3].map((i) => (
+              <Grid item xs={6} lg={3} key={i}>
+                <Paper sx={{ p: 2.5 }}>
+                  <Skeleton variant="text" width="60%" />
+                  <Skeleton variant="text" width="40%" height={36} />
+                </Paper>
+              </Grid>
+            ))
+          ) : (
+            <>
+              <Grid item xs={6} lg={3}>
+                <StatCard icon={EventNoteOutlinedIcon} label="Total Tasks" value={summary.total} tone="primary" />
+              </Grid>
+              <Grid item xs={6} lg={3}>
+                <StatCard icon={PendingActionsOutlinedIcon} label="Pending" value={summary.pending} tone="secondary" />
+              </Grid>
+              <Grid item xs={6} lg={3}>
+                <StatCard icon={PlayCircleOutlineOutlinedIcon} label="In Progress" value={summary.inProgress} tone="accent" />
+              </Grid>
+              <Grid item xs={6} lg={3}>
+                <StatCard icon={CheckCircleOutlineOutlinedIcon} label="Completed" value={summary.completed} tone="success" />
+              </Grid>
+            </>
+          )}
+        </Grid>
+      )}
 
       {!noneAtAll && (
         <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ my: 3 }}>

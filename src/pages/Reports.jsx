@@ -1,8 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Box, Grid, Card, CardContent, Typography, Paper, Skeleton, Alert, Divider, Button,
+  Box, Grid, Card, CardContent, Typography, Skeleton, Alert, Divider, Button,
 } from '@mui/material';
+import { alpha } from '@mui/material/styles';
+import TrendingUpOutlinedIcon from '@mui/icons-material/TrendingUpOutlined';
+import TrendingDownOutlinedIcon from '@mui/icons-material/TrendingDownOutlined';
+import AccountBalanceOutlinedIcon from '@mui/icons-material/AccountBalanceOutlined';
 import TerrainOutlinedIcon from '@mui/icons-material/TerrainOutlined';
 import GridViewOutlinedIcon from '@mui/icons-material/GridViewOutlined';
 import HandymanOutlinedIcon from '@mui/icons-material/HandymanOutlined';
@@ -13,23 +17,42 @@ import PrecisionManufacturingOutlinedIcon from '@mui/icons-material/PrecisionMan
 import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined';
 import EventNoteOutlinedIcon from '@mui/icons-material/EventNoteOutlined';
 import PageContainer from '../components/layout/PageContainer';
+import StatCard from '../components/dashboard/StatCard';
 import { formatNumber, formatCurrency } from '../components/common/formatters';
 import { getReportSnapshot } from '../services/reportsService';
 
-function MetricCard({ icon: Icon, title, primary, secondary, onClick }) {
+/**
+ * A single figure inside the Finance Summary card. Purely presentational —
+ * value + formatting come straight from the report snapshot (unchanged).
+ */
+function FinanceFigure({ icon: Icon, label, value, tone }) {
   return (
-    <Card sx={{ height: '100%', cursor: onClick ? 'pointer' : 'default' }} onClick={onClick}>
-      <CardContent>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1.5 }}>
-          <Box sx={{ width: 40, height: 40, borderRadius: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'background.subtle', color: 'primary.main', flexShrink: 0 }}>
-            <Icon fontSize="small" />
-          </Box>
-          <Typography variant="h6" component="h3">{title}</Typography>
-        </Box>
-        <Typography variant="h3" component="p" sx={{ lineHeight: 1.1 }}>{primary}</Typography>
-        {secondary && <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>{secondary}</Typography>}
-      </CardContent>
-    </Card>
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.75 }}>
+      <Box
+        sx={{
+          width: 44, height: 44, borderRadius: 2, flexShrink: 0,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: `${tone}.main`, bgcolor: (t) => alpha(t.palette[tone].main, 0.12),
+        }}
+      >
+        <Icon />
+      </Box>
+      <Box sx={{ minWidth: 0 }}>
+        <Typography variant="overline" sx={{ display: 'block', lineHeight: 1.4 }}>{label}</Typography>
+        <Typography
+          component="p"
+          sx={{
+            fontFamily: '"Playfair Display", Georgia, serif',
+            fontWeight: 700,
+            fontSize: { xs: '1.5rem', md: '1.75rem' },
+            lineHeight: 1.1,
+            color: `${tone}.main`,
+          }}
+        >
+          {value}
+        </Typography>
+      </Box>
+    </Box>
   );
 }
 
@@ -52,22 +75,24 @@ function Reports() {
   }, []);
 
   const cards = snapshot ? [
-    { icon: TerrainOutlinedIcon, title: 'Vineyards', primary: snapshot.vineyards.total, secondary: `${formatNumber(snapshot.vineyards.totalHectares)} ha total`, path: '/vineyards' },
-    { icon: GridViewOutlinedIcon, title: 'Blocks', primary: snapshot.blocks.total, secondary: 'Total blocks', path: '/blocks' },
-    { icon: HandymanOutlinedIcon, title: 'Operations', primary: snapshot.operations.total, secondary: `${snapshot.operations.active} active`, path: '/operations' },
-    { icon: WaterDropOutlinedIcon, title: 'Irrigation', primary: snapshot.irrigation.total, secondary: `${snapshot.irrigation.active} active`, path: '/irrigation' },
-    { icon: SanitizerOutlinedIcon, title: 'Spray Programme', primary: snapshot.spray.total, secondary: `${snapshot.spray.active} active`, path: '/spray-programme' },
-    { icon: AgricultureOutlinedIcon, title: 'Harvest', primary: snapshot.harvest.total, secondary: `${formatNumber(snapshot.harvest.totalYield)} t total yield`, path: '/harvest' },
-    { icon: PrecisionManufacturingOutlinedIcon, title: 'Machinery', primary: snapshot.machinery.total, secondary: `${snapshot.machinery.operational} operational · ${snapshot.machinery.needsAttention} need attention`, path: '/machinery' },
-    { icon: EventNoteOutlinedIcon, title: 'Planner', primary: snapshot.planner.total, secondary: `${snapshot.planner.open} open tasks`, path: '/planner' },
+    { icon: TerrainOutlinedIcon, title: 'Vineyards', primary: snapshot.vineyards.total, secondary: `${formatNumber(snapshot.vineyards.totalHectares)} ha total`, path: '/vineyards', tone: 'primary' },
+    { icon: GridViewOutlinedIcon, title: 'Blocks', primary: snapshot.blocks.total, secondary: 'Total blocks', path: '/blocks', tone: 'primary' },
+    { icon: HandymanOutlinedIcon, title: 'Operations', primary: snapshot.operations.total, secondary: `${snapshot.operations.active} active`, path: '/operations', tone: 'secondary' },
+    { icon: WaterDropOutlinedIcon, title: 'Irrigation', primary: snapshot.irrigation.total, secondary: `${snapshot.irrigation.active} active`, path: '/irrigation', tone: 'primary' },
+    { icon: SanitizerOutlinedIcon, title: 'Spray Programme', primary: snapshot.spray.total, secondary: `${snapshot.spray.active} active`, path: '/spray-programme', tone: 'secondary' },
+    { icon: AgricultureOutlinedIcon, title: 'Harvest', primary: snapshot.harvest.total, secondary: `${formatNumber(snapshot.harvest.totalYield)} t total yield`, path: '/harvest', tone: 'accent' },
+    { icon: PrecisionManufacturingOutlinedIcon, title: 'Machinery', primary: snapshot.machinery.total, secondary: `${snapshot.machinery.operational} operational · ${snapshot.machinery.needsAttention} need attention`, path: '/machinery', tone: 'primary' },
+    { icon: EventNoteOutlinedIcon, title: 'Planner', primary: snapshot.planner.total, secondary: `${snapshot.planner.open} open tasks`, path: '/planner', tone: 'secondary' },
   ] : [];
 
   return (
-    <PageContainer>
-      <Typography variant="h2" component="h1" sx={{ mb: 0.5 }}>Reports</Typography>
-      <Typography variant="body1" sx={{ color: 'text.secondary', mb: 4 }}>
-        A real-time summary of activity across your vineyard operation.
-      </Typography>
+    <PageContainer maxWidth={1600} sx={{ px: { xs: 2, sm: 3, md: 4, lg: 5 } }}>
+      <Box sx={{ mb: { xs: 3, md: 4 } }}>
+        <Typography variant="h2" component="h1" sx={{ mb: 0.5 }}>Reports</Typography>
+        <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+          A real-time summary of activity across your vineyard operation.
+        </Typography>
+      </Box>
 
       {error ? (
         <Alert severity="error">{error}</Alert>
@@ -79,34 +104,46 @@ function Reports() {
         </Grid>
       ) : (
         <>
+          {/* Section metrics — one clickable card per workspace (real snapshot data) */}
           <Grid container spacing={{ xs: 2, md: 3 }}>
             {cards.map((c) => (
               <Grid item xs={12} sm={6} lg={3} key={c.title}>
-                <MetricCard icon={c.icon} title={c.title} primary={c.primary} secondary={c.secondary} onClick={() => navigate(c.path)} />
+                <StatCard
+                  icon={c.icon}
+                  label={c.title}
+                  value={c.primary}
+                  hint={c.secondary}
+                  tone={c.tone}
+                  onClick={() => navigate(c.path)}
+                />
               </Grid>
             ))}
           </Grid>
 
-          {/* Finance summary */}
-          <Typography variant="h4" component="h2" sx={{ mt: 5, mb: 2 }}>Finance Summary</Typography>
-          <Paper sx={{ p: { xs: 2.5, md: 3 } }}>
-            <Grid container spacing={3}>
-              <Grid item xs={12} sm={4}>
-                <Typography variant="overline" sx={{ display: 'block' }}>Income</Typography>
-                <Typography variant="h4" component="p" sx={{ color: 'success.main', fontWeight: 700 }}>{formatCurrency(snapshot.finance.income)}</Typography>
+          {/* Finance summary — figures come straight from the snapshot (unchanged) */}
+          <Typography variant="h4" component="h2" sx={{ mt: { xs: 4, md: 5 }, mb: 2 }}>Finance Summary</Typography>
+          <Card variant="outlined" sx={{ borderRadius: 3 }}>
+            <CardContent sx={{ p: { xs: 2.5, md: 3 } }}>
+              <Grid container spacing={{ xs: 3, md: 4 }}>
+                <Grid item xs={12} sm={4}>
+                  <FinanceFigure icon={TrendingUpOutlinedIcon} label="Income" value={formatCurrency(snapshot.finance.income)} tone="success" />
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <FinanceFigure icon={TrendingDownOutlinedIcon} label="Expenses" value={formatCurrency(snapshot.finance.expense)} tone="secondary" />
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <FinanceFigure
+                    icon={AccountBalanceOutlinedIcon}
+                    label="Net"
+                    value={formatCurrency(snapshot.finance.net)}
+                    tone={snapshot.finance.net >= 0 ? 'success' : 'error'}
+                  />
+                </Grid>
               </Grid>
-              <Grid item xs={12} sm={4}>
-                <Typography variant="overline" sx={{ display: 'block' }}>Expenses</Typography>
-                <Typography variant="h4" component="p" sx={{ color: 'secondary.main', fontWeight: 700 }}>{formatCurrency(snapshot.finance.expense)}</Typography>
-              </Grid>
-              <Grid item xs={12} sm={4}>
-                <Typography variant="overline" sx={{ display: 'block' }}>Net</Typography>
-                <Typography variant="h4" component="p" sx={{ color: snapshot.finance.net >= 0 ? 'success.main' : 'error.main', fontWeight: 700 }}>{formatCurrency(snapshot.finance.net)}</Typography>
-              </Grid>
-            </Grid>
-            <Divider sx={{ my: 2 }} />
-            <Button size="small" onClick={() => navigate('/finance')}>Open Finance</Button>
-          </Paper>
+              <Divider sx={{ my: 2.5 }} />
+              <Button size="small" onClick={() => navigate('/finance')}>Open Finance</Button>
+            </CardContent>
+          </Card>
         </>
       )}
     </PageContainer>

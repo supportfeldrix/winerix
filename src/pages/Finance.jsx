@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Box, Typography, Button, TextField, InputAdornment, MenuItem, Grid, Card, CardContent,
+  Box, Typography, Button, TextField, InputAdornment, MenuItem, Grid,
   Paper, Skeleton, Alert, Snackbar, Stack, useMediaQuery,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
@@ -12,6 +12,7 @@ import TrendingUpOutlinedIcon from '@mui/icons-material/TrendingUpOutlined';
 import TrendingDownOutlinedIcon from '@mui/icons-material/TrendingDownOutlined';
 import AccountBalanceOutlinedIcon from '@mui/icons-material/AccountBalanceOutlined';
 import PageContainer from '../components/layout/PageContainer';
+import StatCard from '../components/dashboard/StatCard';
 import FinanceCard from '../components/finance/FinanceCard';
 import FinanceTable from '../components/finance/FinanceTable';
 import FinanceForm from '../components/finance/FinanceForm';
@@ -25,22 +26,6 @@ import {
 
 const ALL_TYPES = 'all';
 const ALL_CATEGORIES = 'all';
-
-function SummaryCard({ label, value, icon: Icon, color }) {
-  return (
-    <Card sx={{ height: '100%' }}>
-      <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-        <Box sx={{ width: 48, height: 48, borderRadius: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'background.subtle', color, flexShrink: 0 }}>
-          <Icon />
-        </Box>
-        <Box sx={{ minWidth: 0 }}>
-          <Typography variant="overline" sx={{ display: 'block' }}>{label}</Typography>
-          <Typography variant="h5" component="p" sx={{ lineHeight: 1.2, color, fontWeight: 700 }}>{value}</Typography>
-        </Box>
-      </CardContent>
-    </Card>
-  );
-}
 
 function Finance() {
   const navigate = useNavigate();
@@ -115,7 +100,7 @@ function Finance() {
   const noMatches = !loading && records.length > 0 && filtered.length === 0;
 
   return (
-    <PageContainer>
+    <PageContainer maxWidth={1600} sx={{ px: { xs: 2, sm: 3, md: 4, lg: 5 } }}>
       <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'center' }, justifyContent: 'space-between', gap: 2, mb: 1 }}>
         <Box>
           <Typography variant="h2" component="h1" sx={{ mb: 0.5 }}>Finance</Typography>
@@ -124,16 +109,19 @@ function Finance() {
         <Button variant="contained" color="primary" startIcon={<AddOutlinedIcon />} onClick={openAdd} sx={{ flexShrink: 0 }}>Add Record</Button>
       </Box>
 
-      {/* Summary cards */}
+      {/* Summary cards — totals for the current filtered view (unchanged calculations) */}
       <Grid container spacing={{ xs: 2, md: 3 }} sx={{ mt: 1, mb: 1 }}>
         <Grid item xs={12} sm={4}>
-          {loading ? <Card><CardContent><Skeleton height={56} /></CardContent></Card> : <SummaryCard label="Income" value={formatCurrency(totals.income)} icon={TrendingUpOutlinedIcon} color="success.main" />}
+          {loading ? <Paper sx={{ p: 2.5 }}><Skeleton variant="text" width="60%" /><Skeleton variant="text" width="40%" height={36} /></Paper>
+            : <StatCard icon={TrendingUpOutlinedIcon} label="Income" value={formatCurrency(totals.income)} tone="success" />}
         </Grid>
         <Grid item xs={12} sm={4}>
-          {loading ? <Card><CardContent><Skeleton height={56} /></CardContent></Card> : <SummaryCard label="Expenses" value={formatCurrency(totals.expense)} icon={TrendingDownOutlinedIcon} color="secondary.main" />}
+          {loading ? <Paper sx={{ p: 2.5 }}><Skeleton variant="text" width="60%" /><Skeleton variant="text" width="40%" height={36} /></Paper>
+            : <StatCard icon={TrendingDownOutlinedIcon} label="Expenses" value={formatCurrency(totals.expense)} tone="secondary" />}
         </Grid>
         <Grid item xs={12} sm={4}>
-          {loading ? <Card><CardContent><Skeleton height={56} /></CardContent></Card> : <SummaryCard label="Net" value={formatCurrency(totals.net)} icon={AccountBalanceOutlinedIcon} color={totals.net >= 0 ? 'success.main' : 'error.main'} />}
+          {loading ? <Paper sx={{ p: 2.5 }}><Skeleton variant="text" width="60%" /><Skeleton variant="text" width="40%" height={36} /></Paper>
+            : <StatCard icon={AccountBalanceOutlinedIcon} label="Net" value={formatCurrency(totals.net)} tone={totals.net >= 0 ? 'success' : 'error'} />}
         </Grid>
       </Grid>
 

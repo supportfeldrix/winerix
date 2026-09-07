@@ -105,11 +105,13 @@ function Sidebar({ onNavigate }) {
         flexDirection: 'column',
         bgcolor: 'background.paper',
         overflowX: 'hidden',
+        overflowY: 'hidden',
       }}
     >
-      {/* Brand / Logo */}
+      {/* Brand / Logo — fixed at the top, never scrolls */}
       <Box
         sx={{
+          flexShrink: 0,
           px: 3,
           py: 2.5,
           display: 'flex',
@@ -127,16 +129,34 @@ function Sidebar({ onNavigate }) {
         />
       </Box>
 
-      {/* Primary navigation */}
-      <Box sx={{ flex: 1, overflowY: 'auto', pb: 1.5 }}>
+      {/* Primary navigation — the ONLY area that scrolls when items overflow */}
+      <Box
+        sx={{
+          flex: 1,
+          minHeight: 0,
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          pb: 1,
+        }}
+      >
         {sectionLabel('Manage')}
         <List disablePadding>{MAIN_NAV.map(renderNavItem)}</List>
+      </Box>
 
+      {/* Account — anchored below the scroll area, always accessible */}
+      <Box
+        sx={{
+          flexShrink: 0,
+          borderTop: '1px solid',
+          borderColor: 'divider',
+          pb: 0.5,
+        }}
+      >
         {sectionLabel('Account')}
         <List disablePadding>{SECONDARY_NAV.map(renderNavItem)}</List>
       </Box>
 
-      {/* Footer — decorative grapevine branding */}
+      {/* Footer — decorative grapevine branding, anchored at the bottom */}
       <Box
         sx={{
           position: 'relative',

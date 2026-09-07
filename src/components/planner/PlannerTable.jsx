@@ -1,15 +1,24 @@
 import {
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip,
-  IconButton, Tooltip, Link, Box,
+  IconButton, Tooltip, Link, Box, Typography,
 } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import DeleteOutlineOutlinedIcon from '@mui/icons-material/DeleteOutlineOutlined';
+import EventNoteOutlinedIcon from '@mui/icons-material/EventNoteOutlined';
+import CalendarTodayOutlinedIcon from '@mui/icons-material/CalendarTodayOutlined';
+import TerrainOutlinedIcon from '@mui/icons-material/TerrainOutlined';
 import { formatDate, activityStatusColor } from '../common/formatters';
 
+/**
+ * Premium planner table for the desktop layout. Columns/values unchanged
+ * (Task / Due Date / Vineyard / Block / Status / Actions).
+ * @param {Array} records - Normalised planner tasks.
+ */
 function PlannerTable({ records, onView, onEdit, onDelete }) {
   return (
-    <TableContainer component={Paper} variant="outlined">
+    <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden' }}>
       <Table sx={{ minWidth: 720 }} aria-label="Planner">
         <TableHead>
           <TableRow>
@@ -23,16 +32,37 @@ function PlannerTable({ records, onView, onEdit, onDelete }) {
         </TableHead>
         <TableBody>
           {records.map((r) => (
-            <TableRow key={r.id} hover>
+            <TableRow key={r.id} hover sx={{ '& .MuiTableCell-root': { py: 1.75 } }}>
               <TableCell>
-                <Link component="button" type="button" underline="hover" onClick={() => onView?.(r)}
-                  sx={{ color: 'primary.main', fontWeight: 600, textAlign: 'left' }}>{r.title}</Link>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
+                  <Box
+                    sx={{
+                      width: 34, height: 34, borderRadius: 1.5, flexShrink: 0,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      color: 'primary.main', bgcolor: (t) => alpha(t.palette.primary.main, 0.1),
+                    }}
+                  >
+                    <EventNoteOutlinedIcon sx={{ fontSize: '1.1rem' }} />
+                  </Box>
+                  <Link component="button" type="button" underline="hover" onClick={() => onView?.(r)}
+                    sx={{ color: 'primary.main', fontWeight: 600, textAlign: 'left' }}>{r.title}</Link>
+                </Box>
               </TableCell>
-              <TableCell sx={{ color: 'text.secondary' }}>{formatDate(r.dueDate)}</TableCell>
-              <TableCell sx={{ color: 'text.secondary' }}>{r.vineyardName || '—'}</TableCell>
+              <TableCell>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: 'text.secondary' }}>
+                  <CalendarTodayOutlinedIcon sx={{ fontSize: '0.95rem' }} />
+                  <Typography variant="body2" noWrap>{formatDate(r.dueDate)}</Typography>
+                </Box>
+              </TableCell>
+              <TableCell>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: 'text.secondary' }}>
+                  <TerrainOutlinedIcon sx={{ fontSize: '1rem' }} />
+                  <Typography variant="body2" noWrap>{r.vineyardName || '—'}</Typography>
+                </Box>
+              </TableCell>
               <TableCell sx={{ color: 'text.secondary' }}>{r.blockName || '—'}</TableCell>
               <TableCell>
-                {r.status ? <Chip label={r.status.replace(/_/g, ' ')} size="small" color={activityStatusColor(r.status)} sx={{ textTransform: 'capitalize' }} /> : '—'}
+                {r.status ? <Chip label={r.status.replace(/_/g, ' ')} size="small" color={activityStatusColor(r.status)} sx={{ textTransform: 'capitalize', fontWeight: 600 }} /> : '—'}
               </TableCell>
               <TableCell align="right">
                 <Box sx={{ display: 'inline-flex' }}>
