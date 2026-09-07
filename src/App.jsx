@@ -29,6 +29,7 @@ import Planner from './pages/Planner';
 import PlannerProfile from './components/planner/PlannerProfile';
 import Reports from './pages/Reports';
 import AIIntelligence from './pages/AIIntelligence';
+import Weather from './pages/Weather';
 import Account from './pages/Account';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 
@@ -250,6 +251,7 @@ function App() {
             <Route path="/planner/:id" element={<PlannerProfile />} />
             <Route path="/reports" element={<Reports />} />
             <Route path="/ai-intelligence" element={<AIIntelligence />} />
+            <Route path="/weather" element={<Weather />} />
             <Route path="/account" element={<Account />} />
           </Route>
         </Routes>

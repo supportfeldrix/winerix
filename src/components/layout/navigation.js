@@ -18,6 +18,7 @@ import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined';
 import EventNoteOutlinedIcon from '@mui/icons-material/EventNoteOutlined';
 import AssessmentOutlinedIcon from '@mui/icons-material/AssessmentOutlined';
 import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined';
+import CloudOutlinedIcon from '@mui/icons-material/CloudOutlined';
 import PersonOutlineOutlinedIcon from '@mui/icons-material/PersonOutlineOutlined';
 
 // Primary application navigation
@@ -32,6 +33,7 @@ export const MAIN_NAV = [
   { label: 'Machinery', path: '/machinery', icon: PrecisionManufacturingOutlinedIcon },
   { label: 'Finance', path: '/finance', icon: PaymentsOutlinedIcon },
   { label: 'Planner', path: '/planner', icon: EventNoteOutlinedIcon },
+  { label: 'Weather', path: '/weather', icon: CloudOutlinedIcon },
   { label: 'Reports', path: '/reports', icon: AssessmentOutlinedIcon },
   { label: 'AI Intelligence', path: '/ai-intelligence', icon: AutoAwesomeOutlinedIcon },
 ];

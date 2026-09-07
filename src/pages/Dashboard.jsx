@@ -23,6 +23,7 @@ import PageContainer from '../components/layout/PageContainer';
 import StatCard from '../components/dashboard/StatCard';
 import ProportionBar from '../components/dashboard/ProportionBar';
 import PriorityList from '../components/dashboard/PriorityList';
+import WeatherCard from '../components/dashboard/WeatherCard';
 import { formatNumber, formatCurrency, formatDate } from '../components/common/formatters';
 import { getCurrentUser } from '../services/authService';
 import { getVineyards, getDashboardSummary } from '../services/vineyardService';
@@ -347,6 +348,9 @@ function Dashboard() {
             {/* Right rail */}
             <Grid item xs={12} lg={4}>
               <Stack spacing={{ xs: 2, md: 3 }}>
+                {/* Weather */}
+                <WeatherCard />
+
                 {/* Finance snapshot */}
                 <Card>
                   <CardContent sx={{ p: { xs: 2.5, md: 3 } }}>
