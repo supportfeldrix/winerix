@@ -99,10 +99,12 @@ function Sidebar({ onNavigate }) {
     <Box
       sx={{
         width: SIDEBAR_WIDTH,
+        maxWidth: '100%',
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
         bgcolor: 'background.paper',
+        overflowX: 'hidden',
       }}
     >
       {/* Brand / Logo */}
@@ -138,11 +140,9 @@ function Sidebar({ onNavigate }) {
       <Box
         sx={{
           position: 'relative',
-          height: 116,
+          height: 150,
           flexShrink: 0,
           overflow: 'hidden',
-          borderTop: '1px solid',
-          borderColor: 'divider',
         }}
       >
         <GrapevineDecoration />
