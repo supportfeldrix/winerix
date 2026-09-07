@@ -11,10 +11,14 @@ import {
   Tooltip,
   Link,
   Box,
+  Typography,
 } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import DeleteOutlineOutlinedIcon from '@mui/icons-material/DeleteOutlineOutlined';
+import TerrainOutlinedIcon from '@mui/icons-material/TerrainOutlined';
+import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined';
 
 function formatHectares(value) {
   if (value == null) return '—';
@@ -30,7 +34,9 @@ function statusChipColor(status) {
 }
 
 /**
- * Vineyard table for the desktop layout.
+ * Premium vineyard table for the desktop layout: rounded outlined surface,
+ * cream header (from theme), generous row spacing, refined status badge, and
+ * consistent view/edit/delete actions.
  *
  * @param {Array} vineyards - Normalised vineyards.
  * @param {function} onView
@@ -39,8 +45,12 @@ function statusChipColor(status) {
  */
 function VineyardTable({ vineyards, onView, onEdit, onDelete }) {
   return (
-    <TableContainer component={Paper} variant="outlined">
-      <Table sx={{ minWidth: 640 }} aria-label="Vineyards">
+    <TableContainer
+      component={Paper}
+      variant="outlined"
+      sx={{ borderRadius: 3, overflow: 'hidden' }}
+    >
+      <Table sx={{ minWidth: 680 }} aria-label="Vineyards">
         <TableHead>
           <TableRow>
             <TableCell>Name</TableCell>
@@ -53,26 +63,41 @@ function VineyardTable({ vineyards, onView, onEdit, onDelete }) {
         </TableHead>
         <TableBody>
           {vineyards.map((v) => (
-            <TableRow key={v.id} hover>
+            <TableRow
+              key={v.id}
+              hover
+              sx={{ '& .MuiTableCell-root': { py: 1.75 } }}
+            >
               <TableCell>
-                <Link
-                  component="button"
-                  type="button"
-                  underline="hover"
-                  onClick={() => onView?.(v)}
-                  sx={{
-                    color: 'primary.main',
-                    fontWeight: 600,
-                    textAlign: 'left',
-                  }}
-                >
-                  {v.name}
-                </Link>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
+                  <Box
+                    sx={{
+                      width: 34, height: 34, borderRadius: 1.5, flexShrink: 0,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      color: 'primary.main',
+                      bgcolor: (t) => alpha(t.palette.primary.main, 0.1),
+                    }}
+                  >
+                    <TerrainOutlinedIcon sx={{ fontSize: '1.1rem' }} />
+                  </Box>
+                  <Link
+                    component="button"
+                    type="button"
+                    underline="hover"
+                    onClick={() => onView?.(v)}
+                    sx={{ color: 'primary.main', fontWeight: 600, textAlign: 'left' }}
+                  >
+                    {v.name}
+                  </Link>
+                </Box>
               </TableCell>
-              <TableCell sx={{ color: 'text.secondary' }}>
-                {v.location || '—'}
+              <TableCell>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: 'text.secondary' }}>
+                  <LocationOnOutlinedIcon sx={{ fontSize: '1rem' }} />
+                  <Typography variant="body2" noWrap>{v.location || '—'}</Typography>
+                </Box>
               </TableCell>
-              <TableCell align="right">{formatHectares(v.areaHectares)}</TableCell>
+              <TableCell align="right" sx={{ fontWeight: 600 }}>{formatHectares(v.areaHectares)}</TableCell>
               <TableCell align="right">{v.blockCount ?? '—'}</TableCell>
               <TableCell>
                 {v.status ? (
@@ -80,7 +105,7 @@ function VineyardTable({ vineyards, onView, onEdit, onDelete }) {
                     label={v.status}
                     size="small"
                     color={statusChipColor(v.status)}
-                    sx={{ textTransform: 'capitalize' }}
+                    sx={{ textTransform: 'capitalize', fontWeight: 600 }}
                   />
                 ) : (
                   '—'
@@ -89,30 +114,17 @@ function VineyardTable({ vineyards, onView, onEdit, onDelete }) {
               <TableCell align="right">
                 <Box sx={{ display: 'inline-flex' }}>
                   <Tooltip title="View">
-                    <IconButton
-                      size="small"
-                      aria-label={`View ${v.name}`}
-                      onClick={() => onView?.(v)}
-                    >
+                    <IconButton size="small" aria-label={`View ${v.name}`} onClick={() => onView?.(v)}>
                       <VisibilityOutlinedIcon fontSize="small" />
                     </IconButton>
                   </Tooltip>
                   <Tooltip title="Edit">
-                    <IconButton
-                      size="small"
-                      aria-label={`Edit ${v.name}`}
-                      onClick={() => onEdit?.(v)}
-                    >
+                    <IconButton size="small" aria-label={`Edit ${v.name}`} onClick={() => onEdit?.(v)}>
                       <EditOutlinedIcon fontSize="small" />
                     </IconButton>
                   </Tooltip>
                   <Tooltip title="Delete">
-                    <IconButton
-                      size="small"
-                      color="error"
-                      aria-label={`Delete ${v.name}`}
-                      onClick={() => onDelete?.(v)}
-                    >
+                    <IconButton size="small" color="error" aria-label={`Delete ${v.name}`} onClick={() => onDelete?.(v)}>
                       <DeleteOutlineOutlinedIcon fontSize="small" />
                     </IconButton>
                   </Tooltip>
