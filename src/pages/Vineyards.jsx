@@ -17,7 +17,11 @@ import { useTheme } from '@mui/material/styles';
 import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
 import TerrainOutlinedIcon from '@mui/icons-material/TerrainOutlined';
+import SquareFootOutlinedIcon from '@mui/icons-material/SquareFootOutlined';
+import GridViewOutlinedIcon from '@mui/icons-material/GridViewOutlined';
 import PageContainer from '../components/layout/PageContainer';
+import StatCard from '../components/dashboard/StatCard';
+import { formatNumber } from '../components/common/formatters';
 import VineyardCard from '../components/vineyards/VineyardCard';
 import VineyardTable from '../components/vineyards/VineyardTable';
 import VineyardForm from '../components/vineyards/VineyardForm';
@@ -84,6 +88,14 @@ function Vineyards() {
     );
   }, [vineyards, search]);
 
+  // Real aggregates computed from the already-loaded list (no extra query,
+  // no fabricated values).
+  const summary = useMemo(() => {
+    const totalHectares = vineyards.reduce((sum, v) => sum + (Number(v.areaHectares) || 0), 0);
+    const totalBlocks = vineyards.reduce((sum, v) => sum + (Number(v.blockCount) || 0), 0);
+    return { totalVineyards: vineyards.length, totalHectares, totalBlocks };
+  }, [vineyards]);
+
   // ── Handlers ──────────────────────────────────────────────────────────────
   const openAdd = () => {
     setEditing(null);
@@ -137,7 +149,7 @@ function Vineyards() {
   const noSearchMatches = !loading && vineyards.length > 0 && filtered.length === 0;
 
   return (
-    <PageContainer>
+    <PageContainer maxWidth={1600} sx={{ px: { xs: 2, sm: 3, md: 4, lg: 5 } }}>
       {/* Heading + Add */}
       <Box
         sx={{
@@ -167,6 +179,33 @@ function Vineyards() {
           Add Vineyard
         </Button>
       </Box>
+
+      {/* Real-data summary strip */}
+      {!noneAtAll && (
+        <Grid container spacing={{ xs: 2, md: 3 }} sx={{ mt: 1, mb: 1 }}>
+          <Grid item xs={12} sm={4}>
+            {loading ? (
+              <Paper sx={{ p: 2.5 }}><Skeleton width="50%" height={24} /><Skeleton width="35%" height={44} sx={{ mt: 1 }} /></Paper>
+            ) : (
+              <StatCard icon={TerrainOutlinedIcon} label="Total Vineyards" value={summary.totalVineyards} hint="Under management" tone="primary" />
+            )}
+          </Grid>
+          <Grid item xs={12} sm={4}>
+            {loading ? (
+              <Paper sx={{ p: 2.5 }}><Skeleton width="50%" height={24} /><Skeleton width="35%" height={44} sx={{ mt: 1 }} /></Paper>
+            ) : (
+              <StatCard icon={SquareFootOutlinedIcon} label="Total Hectares" value={formatNumber(summary.totalHectares)} hint="Planted area" tone="accent" />
+            )}
+          </Grid>
+          <Grid item xs={12} sm={4}>
+            {loading ? (
+              <Paper sx={{ p: 2.5 }}><Skeleton width="50%" height={24} /><Skeleton width="35%" height={44} sx={{ mt: 1 }} /></Paper>
+            ) : (
+              <StatCard icon={GridViewOutlinedIcon} label="Total Blocks" value={summary.totalBlocks} hint="Across your vineyards" tone="secondary" />
+            )}
+          </Grid>
+        </Grid>
+      )}
 
       {/* Search */}
       {!noneAtAll && (
