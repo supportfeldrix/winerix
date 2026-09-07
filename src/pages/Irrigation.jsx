@@ -19,7 +19,11 @@ import { useTheme } from '@mui/material/styles';
 import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
 import WaterDropOutlinedIcon from '@mui/icons-material/WaterDropOutlined';
+import PlayCircleOutlineOutlinedIcon from '@mui/icons-material/PlayCircleOutlineOutlined';
+import CheckCircleOutlineOutlinedIcon from '@mui/icons-material/CheckCircleOutlineOutlined';
+import TerrainOutlinedIcon from '@mui/icons-material/TerrainOutlined';
 import PageContainer from '../components/layout/PageContainer';
+import StatCard from '../components/dashboard/StatCard';
 import IrrigationCard from '../components/irrigation/IrrigationCard';
 import IrrigationTable from '../components/irrigation/IrrigationTable';
 import IrrigationForm from '../components/irrigation/IrrigationForm';
@@ -130,6 +134,21 @@ function Irrigation() {
     });
   }, [records, search, vineyardFilter, blockFilter, statusFilter]);
 
+  // Summary metrics computed from the already-loaded records (no extra query).
+  const summary = useMemo(() => {
+    const total = records.length;
+    let active = 0;
+    let completed = 0;
+    const vineyards = new Set();
+    records.forEach((r) => {
+      const status = (r.status || '').toLowerCase();
+      if (status === 'active' || status === 'planned' || status === 'in_progress') active += 1;
+      if (status === 'completed') completed += 1;
+      if (r.vineyardId) vineyards.add(r.vineyardId);
+    });
+    return { total, active, completed, vineyards: vineyards.size };
+  }, [records]);
+
   const updateParams = (updates) => {
     const next = new URLSearchParams(searchParams);
     Object.entries(updates).forEach(([key, value]) => {
@@ -208,7 +227,7 @@ function Irrigation() {
     vineyardFilter !== ALL_VINEYARDS ? vineyardFilter : '';
 
   return (
-    <PageContainer>
+    <PageContainer maxWidth={1600} sx={{ px: { xs: 2, sm: 3, md: 4, lg: 5 } }}>
       {/* Heading + Add */}
       <Box
         sx={{
@@ -238,6 +257,37 @@ function Irrigation() {
           Add Irrigation
         </Button>
       </Box>
+
+      {/* Summary cards */}
+      {!noneAtAll && (
+        <Grid container spacing={{ xs: 2, md: 3 }} sx={{ mt: 1, mb: 1 }}>
+          {loading ? (
+            [0, 1, 2, 3].map((i) => (
+              <Grid item xs={6} lg={3} key={i}>
+                <Paper sx={{ p: 2.5 }}>
+                  <Skeleton variant="text" width="60%" />
+                  <Skeleton variant="text" width="40%" height={36} />
+                </Paper>
+              </Grid>
+            ))
+          ) : (
+            <>
+              <Grid item xs={6} lg={3}>
+                <StatCard icon={WaterDropOutlinedIcon} label="Total Activities" value={summary.total} tone="primary" />
+              </Grid>
+              <Grid item xs={6} lg={3}>
+                <StatCard icon={PlayCircleOutlineOutlinedIcon} label="Active" value={summary.active} tone="secondary" />
+              </Grid>
+              <Grid item xs={6} lg={3}>
+                <StatCard icon={CheckCircleOutlineOutlinedIcon} label="Completed" value={summary.completed} tone="success" />
+              </Grid>
+              <Grid item xs={6} lg={3}>
+                <StatCard icon={TerrainOutlinedIcon} label="Vineyards" value={summary.vineyards} tone="accent" />
+              </Grid>
+            </>
+          )}
+        </Grid>
+      )}
 
       {/* Filters */}
       {!noneAtAll && (

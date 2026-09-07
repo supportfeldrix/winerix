@@ -1,50 +1,22 @@
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Chip,
-  IconButton,
-  Tooltip,
-  Link,
-  Box,
+  Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip,
+  IconButton, Tooltip, Link, Box, Typography,
 } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import DeleteOutlineOutlinedIcon from '@mui/icons-material/DeleteOutlineOutlined';
-
-function formatDate(value) {
-  if (!value) return '—';
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return '—';
-  return d.toLocaleDateString(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
-}
-
-function statusChipColor(status) {
-  const s = (status || '').toLowerCase();
-  if (s === 'active') return 'primary';
-  if (s === 'planned') return 'secondary';
-  return 'default';
-}
+import SanitizerOutlinedIcon from '@mui/icons-material/SanitizerOutlined';
+import TerrainOutlinedIcon from '@mui/icons-material/TerrainOutlined';
+import { formatDate, activityStatusColor } from '../common/formatters';
 
 /**
- * Spray programme table for the desktop layout.
- *
+ * Premium spray programme table for the desktop layout. Columns unchanged.
  * @param {Array} records - Normalised spray programmes (incl. vineyardName/blockName).
- * @param {function} onView
- * @param {function} onEdit
- * @param {function} onDelete
  */
 function SprayProgrammeTable({ records, onView, onEdit, onDelete }) {
   return (
-    <TableContainer component={Paper} variant="outlined">
+    <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden' }}>
       <Table sx={{ minWidth: 720 }} aria-label="Spray Programme">
         <TableHead>
           <TableRow>
@@ -58,69 +30,43 @@ function SprayProgrammeTable({ records, onView, onEdit, onDelete }) {
         </TableHead>
         <TableBody>
           {records.map((r) => (
-            <TableRow key={r.id} hover>
+            <TableRow key={r.id} hover sx={{ '& .MuiTableCell-root': { py: 1.75 } }}>
               <TableCell>
-                <Link
-                  component="button"
-                  type="button"
-                  underline="hover"
-                  onClick={() => onView?.(r)}
-                  sx={{ color: 'primary.main', fontWeight: 600, textAlign: 'left' }}
-                >
-                  {r.title}
-                </Link>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
+                  <Box
+                    sx={{
+                      width: 34, height: 34, borderRadius: 1.5, flexShrink: 0,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      color: 'secondary.main', bgcolor: (t) => alpha(t.palette.secondary.main, 0.1),
+                    }}
+                  >
+                    <SanitizerOutlinedIcon sx={{ fontSize: '1.1rem' }} />
+                  </Box>
+                  <Link component="button" type="button" underline="hover" onClick={() => onView?.(r)}
+                    sx={{ color: 'primary.main', fontWeight: 600, textAlign: 'left' }}>
+                    {r.title}
+                  </Link>
+                </Box>
               </TableCell>
-              <TableCell sx={{ color: 'text.secondary' }}>
-                {r.vineyardName || '—'}
+              <TableCell>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: 'text.secondary' }}>
+                  <TerrainOutlinedIcon sx={{ fontSize: '1rem' }} />
+                  <Typography variant="body2" noWrap>{r.vineyardName || '—'}</Typography>
+                </Box>
               </TableCell>
-              <TableCell sx={{ color: 'text.secondary' }}>
-                {r.blockName || '—'}
-              </TableCell>
+              <TableCell sx={{ color: 'text.secondary' }}>{r.blockName || '—'}</TableCell>
               <TableCell>
                 {r.status ? (
-                  <Chip
-                    label={r.status}
-                    size="small"
-                    color={statusChipColor(r.status)}
-                    sx={{ textTransform: 'capitalize' }}
-                  />
-                ) : (
-                  '—'
-                )}
+                  <Chip label={r.status} size="small" color={activityStatusColor(r.status)}
+                    sx={{ textTransform: 'capitalize', fontWeight: 600 }} />
+                ) : '—'}
               </TableCell>
-              <TableCell sx={{ color: 'text.secondary' }}>
-                {formatDate(r.createdAt)}
-              </TableCell>
+              <TableCell sx={{ color: 'text.secondary' }}>{formatDate(r.createdAt)}</TableCell>
               <TableCell align="right">
                 <Box sx={{ display: 'inline-flex' }}>
-                  <Tooltip title="View">
-                    <IconButton
-                      size="small"
-                      aria-label={`View ${r.title}`}
-                      onClick={() => onView?.(r)}
-                    >
-                      <VisibilityOutlinedIcon fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title="Edit">
-                    <IconButton
-                      size="small"
-                      aria-label={`Edit ${r.title}`}
-                      onClick={() => onEdit?.(r)}
-                    >
-                      <EditOutlinedIcon fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title="Delete">
-                    <IconButton
-                      size="small"
-                      color="error"
-                      aria-label={`Delete ${r.title}`}
-                      onClick={() => onDelete?.(r)}
-                    >
-                      <DeleteOutlineOutlinedIcon fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
+                  <Tooltip title="View"><IconButton size="small" aria-label={`View ${r.title}`} onClick={() => onView?.(r)}><VisibilityOutlinedIcon fontSize="small" /></IconButton></Tooltip>
+                  <Tooltip title="Edit"><IconButton size="small" aria-label={`Edit ${r.title}`} onClick={() => onEdit?.(r)}><EditOutlinedIcon fontSize="small" /></IconButton></Tooltip>
+                  <Tooltip title="Delete"><IconButton size="small" color="error" aria-label={`Delete ${r.title}`} onClick={() => onDelete?.(r)}><DeleteOutlineOutlinedIcon fontSize="small" /></IconButton></Tooltip>
                 </Box>
               </TableCell>
             </TableRow>

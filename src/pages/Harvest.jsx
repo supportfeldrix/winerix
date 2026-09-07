@@ -8,7 +8,12 @@ import { useTheme } from '@mui/material/styles';
 import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
 import AgricultureOutlinedIcon from '@mui/icons-material/AgricultureOutlined';
+import ScaleOutlinedIcon from '@mui/icons-material/ScaleOutlined';
+import CheckCircleOutlineOutlinedIcon from '@mui/icons-material/CheckCircleOutlineOutlined';
+import TerrainOutlinedIcon from '@mui/icons-material/TerrainOutlined';
 import PageContainer from '../components/layout/PageContainer';
+import StatCard from '../components/dashboard/StatCard';
+import { formatNumber } from '../components/common/formatters';
 import HarvestCard from '../components/harvest/HarvestCard';
 import HarvestTable from '../components/harvest/HarvestTable';
 import HarvestForm from '../components/harvest/HarvestForm';
@@ -84,6 +89,21 @@ function Harvest() {
     });
   }, [records, search, vineyardFilter, blockFilter, statusFilter]);
 
+  // Summary metrics computed from the already-loaded records (no extra query,
+  // no change to yield calculations — sums the existing yieldTons values).
+  const summary = useMemo(() => {
+    const total = records.length;
+    let totalYield = 0;
+    let completed = 0;
+    const vineyards = new Set();
+    records.forEach((r) => {
+      if (typeof r.yieldTons === 'number') totalYield += r.yieldTons;
+      if ((r.status || '').toLowerCase() === 'completed') completed += 1;
+      if (r.vineyardId) vineyards.add(r.vineyardId);
+    });
+    return { total, totalYield, completed, vineyards: vineyards.size };
+  }, [records]);
+
   const updateParams = (updates) => {
     const next = new URLSearchParams(searchParams);
     Object.entries(updates).forEach(([k, v]) => { if (!v) next.delete(k); else next.set(k, v); });
@@ -118,7 +138,7 @@ function Harvest() {
   const defaultFormVineyard = vineyardFilter !== ALL_VINEYARDS ? vineyardFilter : '';
 
   return (
-    <PageContainer>
+    <PageContainer maxWidth={1600} sx={{ px: { xs: 2, sm: 3, md: 4, lg: 5 } }}>
       <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'center' }, justifyContent: 'space-between', gap: 2, mb: 1 }}>
         <Box>
           <Typography variant="h2" component="h1" sx={{ mb: 0.5 }}>Harvest</Typography>
@@ -126,6 +146,36 @@ function Harvest() {
         </Box>
         <Button variant="contained" color="primary" startIcon={<AddOutlinedIcon />} onClick={openAdd} sx={{ flexShrink: 0 }}>Add Harvest</Button>
       </Box>
+
+      {!noneAtAll && (
+        <Grid container spacing={{ xs: 2, md: 3 }} sx={{ mt: 1, mb: 1 }}>
+          {loading ? (
+            [0, 1, 2, 3].map((i) => (
+              <Grid item xs={6} lg={3} key={i}>
+                <Paper sx={{ p: 2.5 }}>
+                  <Skeleton variant="text" width="60%" />
+                  <Skeleton variant="text" width="40%" height={36} />
+                </Paper>
+              </Grid>
+            ))
+          ) : (
+            <>
+              <Grid item xs={6} lg={3}>
+                <StatCard icon={AgricultureOutlinedIcon} label="Harvest Records" value={summary.total} tone="primary" />
+              </Grid>
+              <Grid item xs={6} lg={3}>
+                <StatCard icon={ScaleOutlinedIcon} label="Total Yield (t)" value={formatNumber(summary.totalYield)} tone="accent" />
+              </Grid>
+              <Grid item xs={6} lg={3}>
+                <StatCard icon={TerrainOutlinedIcon} label="Vineyards" value={summary.vineyards} tone="secondary" />
+              </Grid>
+              <Grid item xs={6} lg={3}>
+                <StatCard icon={CheckCircleOutlineOutlinedIcon} label="Completed" value={summary.completed} tone="success" />
+              </Grid>
+            </>
+          )}
+        </Grid>
+      )}
 
       {!noneAtAll && (
         <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ my: 3 }}>

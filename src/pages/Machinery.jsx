@@ -8,7 +8,11 @@ import { useTheme } from '@mui/material/styles';
 import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
 import PrecisionManufacturingOutlinedIcon from '@mui/icons-material/PrecisionManufacturingOutlined';
+import CheckCircleOutlineOutlinedIcon from '@mui/icons-material/CheckCircleOutlineOutlined';
+import WarningAmberOutlinedIcon from '@mui/icons-material/WarningAmberOutlined';
+import CategoryOutlinedIcon from '@mui/icons-material/CategoryOutlined';
 import PageContainer from '../components/layout/PageContainer';
+import StatCard from '../components/dashboard/StatCard';
 import MachineryCard from '../components/machinery/MachineryCard';
 import MachineryTable from '../components/machinery/MachineryTable';
 import MachineryForm from '../components/machinery/MachineryForm';
@@ -64,6 +68,21 @@ function Machinery() {
     });
   }, [records, search, statusFilter, categoryFilter]);
 
+  // Summary metrics computed from the already-loaded machinery (no extra query).
+  const summary = useMemo(() => {
+    const total = records.length;
+    let operational = 0;
+    let needsAttention = 0;
+    const categories = new Set();
+    records.forEach((r) => {
+      const status = (r.status || '').toLowerCase();
+      if (status === 'operational') operational += 1;
+      if (status === 'maintenance' || status === 'out_of_service') needsAttention += 1;
+      if (r.category) categories.add(r.category);
+    });
+    return { total, operational, needsAttention, categories: categories.size };
+  }, [records]);
+
   const openAdd = () => { setEditing(null); setFormOpen(true); };
   const openEdit = (r) => { setEditing(r); setFormOpen(true); };
   const handleView = (r) => navigate(`/machinery/${r.id}`);
@@ -89,7 +108,7 @@ function Machinery() {
   const noMatches = !loading && records.length > 0 && filtered.length === 0;
 
   return (
-    <PageContainer>
+    <PageContainer maxWidth={1600} sx={{ px: { xs: 2, sm: 3, md: 4, lg: 5 } }}>
       <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'center' }, justifyContent: 'space-between', gap: 2, mb: 1 }}>
         <Box>
           <Typography variant="h2" component="h1" sx={{ mb: 0.5 }}>Machinery</Typography>
@@ -97,6 +116,36 @@ function Machinery() {
         </Box>
         <Button variant="contained" color="primary" startIcon={<AddOutlinedIcon />} onClick={openAdd} sx={{ flexShrink: 0 }}>Add Machinery</Button>
       </Box>
+
+      {!noneAtAll && (
+        <Grid container spacing={{ xs: 2, md: 3 }} sx={{ mt: 1, mb: 1 }}>
+          {loading ? (
+            [0, 1, 2, 3].map((i) => (
+              <Grid item xs={6} lg={3} key={i}>
+                <Paper sx={{ p: 2.5 }}>
+                  <Skeleton variant="text" width="60%" />
+                  <Skeleton variant="text" width="40%" height={36} />
+                </Paper>
+              </Grid>
+            ))
+          ) : (
+            <>
+              <Grid item xs={6} lg={3}>
+                <StatCard icon={PrecisionManufacturingOutlinedIcon} label="Total Machinery" value={summary.total} tone="primary" />
+              </Grid>
+              <Grid item xs={6} lg={3}>
+                <StatCard icon={CheckCircleOutlineOutlinedIcon} label="Operational" value={summary.operational} tone="success" />
+              </Grid>
+              <Grid item xs={6} lg={3}>
+                <StatCard icon={WarningAmberOutlinedIcon} label="Needs Attention" value={summary.needsAttention} tone="accent" />
+              </Grid>
+              <Grid item xs={6} lg={3}>
+                <StatCard icon={CategoryOutlinedIcon} label="Categories" value={summary.categories} tone="secondary" />
+              </Grid>
+            </>
+          )}
+        </Grid>
+      )}
 
       {!noneAtAll && (
         <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ my: 3 }}>
