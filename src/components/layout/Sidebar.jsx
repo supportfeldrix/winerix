@@ -129,7 +129,11 @@ function Sidebar({ onNavigate }) {
         />
       </Box>
 
-      {/* Primary navigation — the ONLY area that scrolls when items overflow */}
+      {/* Primary navigation — fills the middle of the column. It may scroll if
+          the viewport is genuinely too short to show every item, but the
+          scrollbar itself is never painted (hidden across all browsers) so the
+          sidebar always looks clean. Account + grape live in their own regions
+          below, so they are never covered or pushed away by this scroll. */}
       <Box
         sx={{
           flex: 1,
@@ -137,6 +141,10 @@ function Sidebar({ onNavigate }) {
           overflowY: 'auto',
           overflowX: 'hidden',
           pb: 1,
+          // Hide the scrollbar visually while keeping the area scrollable.
+          scrollbarWidth: 'none', // Firefox
+          msOverflowStyle: 'none', // legacy Edge/IE
+          '&::-webkit-scrollbar': { width: 0, height: 0, display: 'none' }, // Chromium/WebKit
         }}
       >
         {sectionLabel('Manage')}
@@ -156,12 +164,15 @@ function Sidebar({ onNavigate }) {
         <List disablePadding>{SECONDARY_NAV.map(renderNavItem)}</List>
       </Box>
 
-      {/* Footer — decorative grapevine branding, anchored at the bottom */}
+      {/* Footer — decorative grapevine branding. Anchored at the bottom but
+          allowed to shrink so it yields vertical space to the navigation
+          before the nav is ever forced to scroll. */}
       <Box
         sx={{
           position: 'relative',
-          height: 180,
-          flexShrink: 0,
+          height: 148,
+          minHeight: 56,
+          flexShrink: 1,
           overflow: 'hidden',
         }}
       >
