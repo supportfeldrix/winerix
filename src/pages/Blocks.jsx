@@ -19,7 +19,12 @@ import { useTheme } from '@mui/material/styles';
 import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
 import GridViewOutlinedIcon from '@mui/icons-material/GridViewOutlined';
+import SquareFootOutlinedIcon from '@mui/icons-material/SquareFootOutlined';
+import CheckCircleOutlineOutlinedIcon from '@mui/icons-material/CheckCircleOutlineOutlined';
+import TerrainOutlinedIcon from '@mui/icons-material/TerrainOutlined';
 import PageContainer from '../components/layout/PageContainer';
+import StatCard from '../components/dashboard/StatCard';
+import { formatNumber } from '../components/common/formatters';
 import BlockCard from '../components/blocks/BlockCard';
 import BlockTable from '../components/blocks/BlockTable';
 import BlockForm from '../components/blocks/BlockForm';
@@ -118,6 +123,16 @@ function Blocks() {
     });
   }, [blocks, search, vineyardFilter, statusFilter]);
 
+  // Real aggregates from the loaded blocks (no extra query, no fabricated data).
+  const summary = useMemo(() => {
+    const totalHectares = blocks.reduce((sum, b) => sum + (Number(b.areaHectares) || 0), 0);
+    const activeBlocks = blocks.filter((b) => (b.status || '').toLowerCase() === 'active').length;
+    const vineyardsRepresented = new Set(
+      blocks.map((b) => b.vineyardId).filter(Boolean)
+    ).size;
+    return { totalBlocks: blocks.length, totalHectares, activeBlocks, vineyardsRepresented };
+  }, [blocks]);
+
   // Keep the vineyard filter reflected in the URL so the view is shareable and
   // the "View Blocks" deep-link stays in sync.
   const handleVineyardFilterChange = (value) => {
@@ -184,7 +199,7 @@ function Blocks() {
   const noMatches = !loading && blocks.length > 0 && filtered.length === 0;
 
   return (
-    <PageContainer>
+    <PageContainer maxWidth={1600} sx={{ px: { xs: 2, sm: 3, md: 4, lg: 5 } }}>
       {/* Heading + Add */}
       <Box
         sx={{
@@ -214,6 +229,26 @@ function Blocks() {
           Add Block
         </Button>
       </Box>
+
+      {/* Real-data summary strip */}
+      {!noneAtAll && (
+        <Grid container spacing={{ xs: 2, md: 3 }} sx={{ mt: 1, mb: 1 }}>
+          {[
+            { icon: GridViewOutlinedIcon, label: 'Total Blocks', value: summary.totalBlocks, hint: 'Across your vineyards', tone: 'primary' },
+            { icon: SquareFootOutlinedIcon, label: 'Total Hectares', value: formatNumber(summary.totalHectares), hint: 'Block area', tone: 'accent' },
+            { icon: CheckCircleOutlineOutlinedIcon, label: 'Active Blocks', value: summary.activeBlocks, hint: 'Currently active', tone: 'success' },
+            { icon: TerrainOutlinedIcon, label: 'Vineyards', value: summary.vineyardsRepresented, hint: 'Represented', tone: 'secondary' },
+          ].map((c) => (
+            <Grid item xs={6} lg={3} key={c.label}>
+              {loading ? (
+                <Paper sx={{ p: 2.5 }}><Skeleton width="55%" height={22} /><Skeleton width="40%" height={40} sx={{ mt: 1 }} /></Paper>
+              ) : (
+                <StatCard icon={c.icon} label={c.label} value={c.value} hint={c.hint} tone={c.tone} />
+              )}
+            </Grid>
+          ))}
+        </Grid>
+      )}
 
       {/* Search + vineyard filter */}
       {!noneAtAll && (
