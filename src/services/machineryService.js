@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { getActiveOrgId } from './activeOrg';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // WINERIX — Machinery Service. RLS-scoped to the authenticated user.
@@ -72,8 +73,11 @@ export async function getMachineryItem(id) {
 export async function createMachinery(input) {
   const { data: userData, error: userError } = await supabase.auth.getUser();
   if (userError || !userData?.user) return { data: null, error: userError || { message: 'Not authenticated' } };
+  const orgId = getActiveOrgId();
+  if (!orgId) return { data: null, error: { message: 'No active organisation' } };
   const row = {
     owner_id: userData.user.id,
+    org_id: orgId,
     vineyard_id: input.vineyardId || null,
     name: input.name,
     category: input.category || null,

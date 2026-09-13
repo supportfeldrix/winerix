@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { getActiveOrgId } from './activeOrg';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // WINERIX — Vineyard Service
@@ -125,8 +126,14 @@ export async function createVineyard(input) {
     return { data: null, error: userError || { message: 'Not authenticated' } };
   }
 
+  const orgId = getActiveOrgId();
+  if (!orgId) {
+    return { data: null, error: { message: 'No active organisation' } };
+  }
+
   const row = {
     owner_id: userData.user.id,
+    org_id: orgId,
     name: input.name,
     location: input.location || null,
     area_hectares: input.areaHectares ?? null,

@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { getActiveOrgId } from './activeOrg';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // WINERIX — Harvest Service
@@ -90,8 +91,13 @@ export async function createHarvest(input) {
   if (userError || !userData?.user) {
     return { data: null, error: userError || { message: 'Not authenticated' } };
   }
+  const orgId = getActiveOrgId();
+  if (!orgId) {
+    return { data: null, error: { message: 'No active organisation' } };
+  }
   const row = {
     owner_id: userData.user.id,
+    org_id: orgId,
     vineyard_id: input.vineyardId,
     block_id: input.blockId || null,
     title: input.title,

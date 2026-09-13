@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { getActiveOrgId } from './activeOrg';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // WINERIX — Block Service
@@ -134,8 +135,14 @@ export async function createBlock(input) {
     return { data: null, error: userError || { message: 'Not authenticated' } };
   }
 
+  const orgId = getActiveOrgId();
+  if (!orgId) {
+    return { data: null, error: { message: 'No active organisation' } };
+  }
+
   const row = {
     owner_id: userData.user.id,
+    org_id: orgId,
     vineyard_id: input.vineyardId,
     name: input.name,
     area_hectares: input.areaHectares ?? null,
