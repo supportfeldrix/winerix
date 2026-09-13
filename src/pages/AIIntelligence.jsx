@@ -15,6 +15,7 @@ import EventNoteOutlinedIcon from '@mui/icons-material/EventNoteOutlined';
 import CalendarTodayOutlinedIcon from '@mui/icons-material/CalendarTodayOutlined';
 import ArrowForwardOutlinedIcon from '@mui/icons-material/ArrowForwardOutlined';
 import PageContainer from '../components/layout/PageContainer';
+import { useOrganisation } from '../context/OrganisationContext';
 import { formatDate, formatCurrency, formatNumber } from '../components/common/formatters';
 import { getReportSnapshot } from '../services/reportsService';
 
@@ -125,11 +126,13 @@ function InsightRow({ tone, text }) {
 
 function AIIntelligence() {
   const navigate = useNavigate();
+  const { activeOrgId } = useOrganisation();
   const [snapshot, setSnapshot] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
+    if (!activeOrgId) return undefined;
     let active = true;
     (async () => {
       setLoading(true); setError('');
@@ -139,7 +142,7 @@ function AIIntelligence() {
       setLoading(false);
     })();
     return () => { active = false; };
-  }, []);
+  }, [activeOrgId]);
 
   const insights = useMemo(() => buildInsights(snapshot), [snapshot]);
   const upcoming = snapshot?.planner?.upcoming || [];

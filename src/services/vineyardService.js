@@ -79,9 +79,13 @@ function normaliseVineyard(v) {
  * @returns {Promise<{ data: Array|null, error: object|null }>}
  */
 export async function getVineyards() {
+  const orgId = getActiveOrgId();
+  if (!orgId) return { data: [], error: null };
+
   const { data, error } = await supabase
     .from('vineyards')
     .select('id, name, location, area_hectares, status, created_at, blocks(count)')
+    .eq('org_id', orgId)
     .order('created_at', { ascending: true });
 
   if (error) {
@@ -104,10 +108,14 @@ export async function getVineyards() {
  * @returns {Promise<{ data: object|null, error: object|null }>}
  */
 export async function getVineyard(id) {
+  const orgId = getActiveOrgId();
+  if (!orgId) return { data: null, error: { message: 'No active organisation' } };
+
   const { data, error } = await supabase
     .from('vineyards')
     .select('id, name, location, area_hectares, status, created_at, updated_at, blocks(count)')
     .eq('id', id)
+    .eq('org_id', orgId)
     .single();
 
   if (error) return { data: null, error };
@@ -198,20 +206,29 @@ export async function deleteVineyard(id) {
  * @returns {Promise<{ data: object|null, error: object|null }>}
  */
 export async function getDashboardSummary() {
+  const orgId = getActiveOrgId();
+  if (!orgId) {
+    return {
+      data: { totalVineyards: 0, totalBlocks: 0, totalHectares: 0, activeOperations: 0 },
+      error: null,
+    };
+  }
+
   const [vineyardsRes, blocksRes, hectaresRes, activeOpsRes] = await Promise.all([
-    // Total vineyards (count only)
-    supabase.from('vineyards').select('id', { count: 'exact', head: true }),
+    // Total vineyards (count only) — scoped to the active organisation
+    supabase.from('vineyards').select('id', { count: 'exact', head: true }).eq('org_id', orgId),
 
-    // Total blocks (count only)
-    supabase.from('blocks').select('id', { count: 'exact', head: true }),
+    // Total blocks (count only) — scoped to the active organisation
+    supabase.from('blocks').select('id', { count: 'exact', head: true }).eq('org_id', orgId),
 
-    // Hectares — fetch area values and sum client-side (RLS-scoped rows only)
-    supabase.from('vineyards').select('area_hectares'),
+    // Hectares — fetch area values and sum client-side (active-org rows only)
+    supabase.from('vineyards').select('area_hectares').eq('org_id', orgId),
 
-    // Active operations (count only), excluding terminal statuses
+    // Active operations (count only), excluding terminal statuses — scoped
     supabase
       .from('operations')
       .select('id', { count: 'exact', head: true })
+      .eq('org_id', orgId)
       .not('status', 'in', `(${INACTIVE_OPERATION_STATUSES.join(',')})`),
   ]);
 

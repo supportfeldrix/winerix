@@ -13,6 +13,7 @@ import WarningAmberOutlinedIcon from '@mui/icons-material/WarningAmberOutlined';
 import CategoryOutlinedIcon from '@mui/icons-material/CategoryOutlined';
 import PageContainer from '../components/layout/PageContainer';
 import StatCard from '../components/dashboard/StatCard';
+import { useOrganisation } from '../context/OrganisationContext';
 import MachineryCard from '../components/machinery/MachineryCard';
 import MachineryTable from '../components/machinery/MachineryTable';
 import MachineryForm from '../components/machinery/MachineryForm';
@@ -45,6 +46,8 @@ function Machinery() {
   const [deleting, setDeleting] = useState(false);
   const [toast, setToast] = useState('');
 
+  const { activeOrgId } = useOrganisation();
+
   const load = useCallback(async () => {
     setLoading(true); setError('');
     const [recRes, vRes] = await Promise.all([getMachinery(), getVineyardOptions()]);
@@ -56,7 +59,7 @@ function Machinery() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { if (!activeOrgId) return; load(); }, [activeOrgId, load]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();

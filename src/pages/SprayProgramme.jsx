@@ -24,6 +24,7 @@ import CheckCircleOutlineOutlinedIcon from '@mui/icons-material/CheckCircleOutli
 import TerrainOutlinedIcon from '@mui/icons-material/TerrainOutlined';
 import PageContainer from '../components/layout/PageContainer';
 import StatCard from '../components/dashboard/StatCard';
+import { useOrganisation } from '../context/OrganisationContext';
 import SprayProgrammeCard from '../components/spray/SprayProgrammeCard';
 import SprayProgrammeTable from '../components/spray/SprayProgrammeTable';
 import SprayProgrammeForm from '../components/spray/SprayProgrammeForm';
@@ -75,6 +76,8 @@ function SprayProgramme() {
 
   const [toast, setToast] = useState('');
 
+  const { activeOrgId } = useOrganisation();
+
   const load = useCallback(async () => {
     setLoading(true);
     setError('');
@@ -102,8 +105,9 @@ function SprayProgramme() {
   }, []);
 
   useEffect(() => {
+    if (!activeOrgId) return;
     load();
-  }, [load]);
+  }, [activeOrgId, load]);
 
   // Sync vineyard/block filters from URL params when they change.
   useEffect(() => {

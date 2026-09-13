@@ -81,9 +81,13 @@ const BLOCK_SELECT =
  * @returns {Promise<{ data: Array|null, error: object|null }>}
  */
 export async function getBlocks() {
+  const orgId = getActiveOrgId();
+  if (!orgId) return { data: [], error: null };
+
   const { data, error } = await supabase
     .from('blocks')
     .select(BLOCK_SELECT)
+    .eq('org_id', orgId)
     .order('created_at', { ascending: true });
 
   if (error) return { data: null, error };
@@ -97,10 +101,14 @@ export async function getBlocks() {
  * @returns {Promise<{ data: Array|null, error: object|null }>}
  */
 export async function getBlocksByVineyard(vineyardId) {
+  const orgId = getActiveOrgId();
+  if (!orgId) return { data: [], error: null };
+
   const { data, error } = await supabase
     .from('blocks')
     .select(BLOCK_SELECT)
     .eq('vineyard_id', vineyardId)
+    .eq('org_id', orgId)
     .order('created_at', { ascending: true });
 
   if (error) return { data: null, error };
@@ -113,10 +121,14 @@ export async function getBlocksByVineyard(vineyardId) {
  * @returns {Promise<{ data: object|null, error: object|null }>}
  */
 export async function getBlock(id) {
+  const orgId = getActiveOrgId();
+  if (!orgId) return { data: null, error: { message: 'No active organisation' } };
+
   const { data, error } = await supabase
     .from('blocks')
     .select(BLOCK_SELECT)
     .eq('id', id)
+    .eq('org_id', orgId)
     .single();
 
   if (error) return { data: null, error };
@@ -201,9 +213,13 @@ export async function deleteBlock(id) {
  * @returns {Promise<{ data: Array<{ id: string, name: string }>|null, error: object|null }>}
  */
 export async function getVineyardOptions() {
+  const orgId = getActiveOrgId();
+  if (!orgId) return { data: [], error: null };
+
   const { data, error } = await supabase
     .from('vineyards')
     .select('id, name')
+    .eq('org_id', orgId)
     .order('name', { ascending: true });
 
   if (error) return { data: null, error };

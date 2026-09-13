@@ -24,6 +24,7 @@ import CheckCircleOutlineOutlinedIcon from '@mui/icons-material/CheckCircleOutli
 import TerrainOutlinedIcon from '@mui/icons-material/TerrainOutlined';
 import PageContainer from '../components/layout/PageContainer';
 import StatCard from '../components/dashboard/StatCard';
+import { useOrganisation } from '../context/OrganisationContext';
 import { formatNumber } from '../components/common/formatters';
 import BlockCard from '../components/blocks/BlockCard';
 import BlockTable from '../components/blocks/BlockTable';
@@ -71,6 +72,8 @@ function Blocks() {
 
   const [toast, setToast] = useState('');
 
+  const { activeOrgId } = useOrganisation();
+
   const load = useCallback(async () => {
     setLoading(true);
     setError('');
@@ -100,8 +103,9 @@ function Blocks() {
   }, []);
 
   useEffect(() => {
+    if (!activeOrgId) return;
     load();
-  }, [load]);
+  }, [activeOrgId, load]);
 
   // Sync the vineyard filter when the ?vineyard= URL param changes (e.g. when
   // arriving from a vineyard's "View Blocks" action while already mounted).

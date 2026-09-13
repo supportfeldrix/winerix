@@ -59,13 +59,17 @@ const SELECT =
   'vineyard:vineyards(id, name)';
 
 export async function getMachinery() {
-  const { data, error } = await supabase.from('machinery').select(SELECT).order('name', { ascending: true });
+  const orgId = getActiveOrgId();
+  if (!orgId) return { data: [], error: null };
+  const { data, error } = await supabase.from('machinery').select(SELECT).eq('org_id', orgId).order('name', { ascending: true });
   if (error) return { data: null, error };
   return { data: (data || []).map(normalise), error: null };
 }
 
 export async function getMachineryItem(id) {
-  const { data, error } = await supabase.from('machinery').select(SELECT).eq('id', id).single();
+  const orgId = getActiveOrgId();
+  if (!orgId) return { data: null, error: { message: 'No active organisation' } };
+  const { data, error } = await supabase.from('machinery').select(SELECT).eq('id', id).eq('org_id', orgId).single();
   if (error) return { data: null, error };
   return { data: normalise(data), error: null };
 }
@@ -110,7 +114,9 @@ export async function deleteMachinery(id) {
 }
 
 export async function getVineyardOptions() {
-  const { data, error } = await supabase.from('vineyards').select('id, name').order('name', { ascending: true });
+  const orgId = getActiveOrgId();
+  if (!orgId) return { data: [], error: null };
+  const { data, error } = await supabase.from('vineyards').select('id, name').eq('org_id', orgId).order('name', { ascending: true });
   if (error) return { data: null, error };
   return { data: data || [], error: null };
 }

@@ -88,9 +88,13 @@ const IRRIGATION_SELECT =
  * @returns {Promise<{ data: Array|null, error: object|null }>}
  */
 export async function getIrrigationRecords() {
+  const orgId = getActiveOrgId();
+  if (!orgId) return { data: [], error: null };
+
   const { data, error } = await supabase
     .from('irrigation')
     .select(IRRIGATION_SELECT)
+    .eq('org_id', orgId)
     .order('created_at', { ascending: false });
 
   if (error) return { data: null, error };
@@ -103,10 +107,14 @@ export async function getIrrigationRecords() {
  * @returns {Promise<{ data: Array|null, error: object|null }>}
  */
 export async function getIrrigationByVineyard(vineyardId) {
+  const orgId = getActiveOrgId();
+  if (!orgId) return { data: [], error: null };
+
   const { data, error } = await supabase
     .from('irrigation')
     .select(IRRIGATION_SELECT)
     .eq('vineyard_id', vineyardId)
+    .eq('org_id', orgId)
     .order('created_at', { ascending: false });
 
   if (error) return { data: null, error };
@@ -119,10 +127,14 @@ export async function getIrrigationByVineyard(vineyardId) {
  * @returns {Promise<{ data: Array|null, error: object|null }>}
  */
 export async function getIrrigationByBlock(blockId) {
+  const orgId = getActiveOrgId();
+  if (!orgId) return { data: [], error: null };
+
   const { data, error } = await supabase
     .from('irrigation')
     .select(IRRIGATION_SELECT)
     .eq('block_id', blockId)
+    .eq('org_id', orgId)
     .order('created_at', { ascending: false });
 
   if (error) return { data: null, error };
@@ -135,10 +147,14 @@ export async function getIrrigationByBlock(blockId) {
  * @returns {Promise<{ data: object|null, error: object|null }>}
  */
 export async function getIrrigationRecord(id) {
+  const orgId = getActiveOrgId();
+  if (!orgId) return { data: null, error: { message: 'No active organisation' } };
+
   const { data, error } = await supabase
     .from('irrigation')
     .select(IRRIGATION_SELECT)
     .eq('id', id)
+    .eq('org_id', orgId)
     .single();
 
   if (error) return { data: null, error };
@@ -221,9 +237,13 @@ export async function deleteIrrigationRecord(id) {
  * @returns {Promise<{ data: Array<{ id, name }>|null, error: object|null }>}
  */
 export async function getVineyardOptions() {
+  const orgId = getActiveOrgId();
+  if (!orgId) return { data: [], error: null };
+
   const { data, error } = await supabase
     .from('vineyards')
     .select('id, name')
+    .eq('org_id', orgId)
     .order('name', { ascending: true });
 
   if (error) return { data: null, error };
@@ -236,9 +256,13 @@ export async function getVineyardOptions() {
  * @returns {Promise<{ data: Array<{ id, name, vineyardId }>|null, error: object|null }>}
  */
 export async function getBlockOptions() {
+  const orgId = getActiveOrgId();
+  if (!orgId) return { data: [], error: null };
+
   const { data, error } = await supabase
     .from('blocks')
     .select('id, name, vineyard_id')
+    .eq('org_id', orgId)
     .order('name', { ascending: true });
 
   if (error) return { data: null, error };

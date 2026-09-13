@@ -21,6 +21,7 @@ import WaterDropOutlinedIcon from '@mui/icons-material/WaterDropOutlined';
 import SanitizerOutlinedIcon from '@mui/icons-material/SanitizerOutlined';
 import PageContainer from '../components/layout/PageContainer';
 import StatCard from '../components/dashboard/StatCard';
+import { useOrganisation } from '../context/OrganisationContext';
 import ProportionBar from '../components/dashboard/ProportionBar';
 import PriorityList from '../components/dashboard/PriorityList';
 import WeatherCard from '../components/dashboard/WeatherCard';
@@ -82,7 +83,10 @@ function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
+  const { activeOrgId } = useOrganisation();
+
   useEffect(() => {
+    if (!activeOrgId) return undefined;
     let active = true;
     async function load() {
       setLoading(true);
@@ -119,7 +123,7 @@ function Dashboard() {
     }
     load();
     return () => { active = false; };
-  }, []);
+  }, [activeOrgId]);
 
   const s = snapshot;
 

@@ -18,6 +18,7 @@ import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined';
 import EventNoteOutlinedIcon from '@mui/icons-material/EventNoteOutlined';
 import PageContainer from '../components/layout/PageContainer';
 import StatCard from '../components/dashboard/StatCard';
+import { useOrganisation } from '../context/OrganisationContext';
 import { formatNumber, formatCurrency } from '../components/common/formatters';
 import { getReportSnapshot } from '../services/reportsService';
 
@@ -58,11 +59,13 @@ function FinanceFigure({ icon: Icon, label, value, tone }) {
 
 function Reports() {
   const navigate = useNavigate();
+  const { activeOrgId } = useOrganisation();
   const [snapshot, setSnapshot] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
+    if (!activeOrgId) return undefined;
     let active = true;
     (async () => {
       setLoading(true); setError('');
@@ -72,7 +75,7 @@ function Reports() {
       setLoading(false);
     })();
     return () => { active = false; };
-  }, []);
+  }, [activeOrgId]);
 
   const cards = snapshot ? [
     { icon: TerrainOutlinedIcon, title: 'Vineyards', primary: snapshot.vineyards.total, secondary: `${formatNumber(snapshot.vineyards.totalHectares)} ha total`, path: '/vineyards', tone: 'primary' },

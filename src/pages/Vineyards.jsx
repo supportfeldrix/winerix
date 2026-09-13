@@ -21,6 +21,7 @@ import SquareFootOutlinedIcon from '@mui/icons-material/SquareFootOutlined';
 import GridViewOutlinedIcon from '@mui/icons-material/GridViewOutlined';
 import PageContainer from '../components/layout/PageContainer';
 import StatCard from '../components/dashboard/StatCard';
+import { useOrganisation } from '../context/OrganisationContext';
 import { formatNumber } from '../components/common/formatters';
 import VineyardCard from '../components/vineyards/VineyardCard';
 import VineyardTable from '../components/vineyards/VineyardTable';
@@ -55,6 +56,8 @@ function Vineyards() {
 
   const [toast, setToast] = useState('');
 
+  const { activeOrgId } = useOrganisation();
+
   const load = useCallback(async () => {
     setLoading(true);
     setError('');
@@ -75,8 +78,9 @@ function Vineyards() {
   }, []);
 
   useEffect(() => {
+    if (!activeOrgId) return;
     load();
-  }, [load]);
+  }, [activeOrgId, load]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();

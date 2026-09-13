@@ -24,6 +24,7 @@ import CheckCircleOutlineOutlinedIcon from '@mui/icons-material/CheckCircleOutli
 import TerrainOutlinedIcon from '@mui/icons-material/TerrainOutlined';
 import PageContainer from '../components/layout/PageContainer';
 import StatCard from '../components/dashboard/StatCard';
+import { useOrganisation } from '../context/OrganisationContext';
 import OperationCard from '../components/operations/OperationCard';
 import OperationTable from '../components/operations/OperationTable';
 import OperationForm from '../components/operations/OperationForm';
@@ -75,6 +76,8 @@ function Operations() {
 
   const [toast, setToast] = useState('');
 
+  const { activeOrgId } = useOrganisation();
+
   const load = useCallback(async () => {
     setLoading(true);
     setError('');
@@ -102,8 +105,9 @@ function Operations() {
   }, []);
 
   useEffect(() => {
+    if (!activeOrgId) return;
     load();
-  }, [load]);
+  }, [activeOrgId, load]);
 
   // Sync vineyard/block filters from URL params when they change.
   useEffect(() => {

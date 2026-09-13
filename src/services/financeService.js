@@ -60,15 +60,20 @@ const SELECT =
   'vineyard:vineyards(id, name), block:blocks(id, name)';
 
 export async function getFinanceRecords() {
+  const orgId = getActiveOrgId();
+  if (!orgId) return { data: [], error: null };
   const { data, error } = await supabase
     .from('finance').select(SELECT)
+    .eq('org_id', orgId)
     .order('entry_date', { ascending: false, nullsFirst: false });
   if (error) return { data: null, error };
   return { data: (data || []).map(normalise), error: null };
 }
 
 export async function getFinanceRecord(id) {
-  const { data, error } = await supabase.from('finance').select(SELECT).eq('id', id).single();
+  const orgId = getActiveOrgId();
+  if (!orgId) return { data: null, error: { message: 'No active organisation' } };
+  const { data, error } = await supabase.from('finance').select(SELECT).eq('id', id).eq('org_id', orgId).single();
   if (error) return { data: null, error };
   return { data: normalise(data), error: null };
 }
@@ -131,13 +136,17 @@ export function computeTotals(records) {
 }
 
 export async function getVineyardOptions() {
-  const { data, error } = await supabase.from('vineyards').select('id, name').order('name', { ascending: true });
+  const orgId = getActiveOrgId();
+  if (!orgId) return { data: [], error: null };
+  const { data, error } = await supabase.from('vineyards').select('id, name').eq('org_id', orgId).order('name', { ascending: true });
   if (error) return { data: null, error };
   return { data: data || [], error: null };
 }
 
 export async function getBlockOptions() {
-  const { data, error } = await supabase.from('blocks').select('id, name, vineyard_id').order('name', { ascending: true });
+  const orgId = getActiveOrgId();
+  if (!orgId) return { data: [], error: null };
+  const { data, error } = await supabase.from('blocks').select('id, name, vineyard_id').eq('org_id', orgId).order('name', { ascending: true });
   if (error) return { data: null, error };
   return { data: (data || []).map((b) => ({ id: b.id, name: b.name, vineyardId: b.vineyard_id })), error: null };
 }

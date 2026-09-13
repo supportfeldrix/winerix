@@ -13,6 +13,7 @@ import TrendingDownOutlinedIcon from '@mui/icons-material/TrendingDownOutlined';
 import AccountBalanceOutlinedIcon from '@mui/icons-material/AccountBalanceOutlined';
 import PageContainer from '../components/layout/PageContainer';
 import StatCard from '../components/dashboard/StatCard';
+import { useOrganisation } from '../context/OrganisationContext';
 import FinanceCard from '../components/finance/FinanceCard';
 import FinanceTable from '../components/finance/FinanceTable';
 import FinanceForm from '../components/finance/FinanceForm';
@@ -48,6 +49,8 @@ function Finance() {
   const [deleting, setDeleting] = useState(false);
   const [toast, setToast] = useState('');
 
+  const { activeOrgId } = useOrganisation();
+
   const load = useCallback(async () => {
     setLoading(true); setError('');
     const [recRes, vRes, bRes] = await Promise.all([getFinanceRecords(), getVineyardOptions(), getBlockOptions()]);
@@ -60,7 +63,7 @@ function Finance() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { if (!activeOrgId) return; load(); }, [activeOrgId, load]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();

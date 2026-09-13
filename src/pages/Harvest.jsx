@@ -13,6 +13,7 @@ import CheckCircleOutlineOutlinedIcon from '@mui/icons-material/CheckCircleOutli
 import TerrainOutlinedIcon from '@mui/icons-material/TerrainOutlined';
 import PageContainer from '../components/layout/PageContainer';
 import StatCard from '../components/dashboard/StatCard';
+import { useOrganisation } from '../context/OrganisationContext';
 import { formatNumber } from '../components/common/formatters';
 import HarvestCard from '../components/harvest/HarvestCard';
 import HarvestTable from '../components/harvest/HarvestTable';
@@ -51,6 +52,8 @@ function Harvest() {
   const [deleting, setDeleting] = useState(false);
   const [toast, setToast] = useState('');
 
+  const { activeOrgId } = useOrganisation();
+
   const load = useCallback(async () => {
     setLoading(true); setError('');
     const [recRes, vRes, bRes] = await Promise.all([getHarvests(), getVineyardOptions(), getBlockOptions()]);
@@ -64,7 +67,7 @@ function Harvest() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { if (!activeOrgId) return; load(); }, [activeOrgId, load]);
 
   useEffect(() => {
     const v = searchParams.get('vineyard') || ALL_VINEYARDS;
