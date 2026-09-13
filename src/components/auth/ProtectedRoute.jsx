@@ -3,6 +3,7 @@ import { Navigate } from 'react-router-dom';
 import { Box, CircularProgress } from '@mui/material';
 import { getSession, onAuthStateChange } from '../../services/authService';
 import MainLayout from '../layout/MainLayout';
+import { OrganisationProvider } from '../../context/OrganisationContext';
 
 /**
  * Route guard for the authenticated Winerix application shell.
@@ -61,7 +62,13 @@ function ProtectedRoute() {
     return <Navigate to="/login" replace />;
   }
 
-  return <MainLayout user={user} />;
+  // Authenticated: provide organisation context to the app shell. The provider
+  // only exists for authenticated users (a resolved session + user is present).
+  return (
+    <OrganisationProvider user={user}>
+      <MainLayout user={user} />
+    </OrganisationProvider>
+  );
 }
 
 export default ProtectedRoute;
