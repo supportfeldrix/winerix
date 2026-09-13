@@ -9,6 +9,7 @@
 import DashboardOutlinedIcon from '@mui/icons-material/DashboardOutlined';
 import TerrainOutlinedIcon from '@mui/icons-material/TerrainOutlined';
 import GridViewOutlinedIcon from '@mui/icons-material/GridViewOutlined';
+import LocalBarOutlinedIcon from '@mui/icons-material/LocalBarOutlined';
 import HandymanOutlinedIcon from '@mui/icons-material/HandymanOutlined';
 import WaterDropOutlinedIcon from '@mui/icons-material/WaterDropOutlined';
 import SanitizerOutlinedIcon from '@mui/icons-material/SanitizerOutlined';
@@ -26,6 +27,7 @@ export const MAIN_NAV = [
   { label: 'Dashboard', path: '/dashboard', icon: DashboardOutlinedIcon },
   { label: 'Vineyards', path: '/vineyards', icon: TerrainOutlinedIcon },
   { label: 'Blocks', path: '/blocks', icon: GridViewOutlinedIcon },
+  { label: 'Cultivars', path: '/cultivars', icon: LocalBarOutlinedIcon },
   { label: 'Operations', path: '/operations', icon: HandymanOutlinedIcon },
   { label: 'Irrigation', path: '/irrigation', icon: WaterDropOutlinedIcon },
   { label: 'Spray Programme', path: '/spray-programme', icon: SanitizerOutlinedIcon },

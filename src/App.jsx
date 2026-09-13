@@ -13,6 +13,7 @@ import Vineyards from './pages/Vineyards';
 import VineyardProfile from './components/vineyards/VineyardProfile';
 import Blocks from './pages/Blocks';
 import BlockProfile from './components/blocks/BlockProfile';
+import Cultivars from './pages/Cultivars';
 import Operations from './pages/Operations';
 import OperationProfile from './components/operations/OperationProfile';
 import Irrigation from './pages/Irrigation';
@@ -235,6 +236,7 @@ function App() {
             <Route path="/vineyards/:id" element={<VineyardProfile />} />
             <Route path="/blocks" element={<Blocks />} />
             <Route path="/blocks/:id" element={<BlockProfile />} />
+            <Route path="/cultivars" element={<Cultivars />} />
             <Route path="/operations" element={<Operations />} />
             <Route path="/operations/:id" element={<OperationProfile />} />
             <Route path="/irrigation" element={<Irrigation />} />
