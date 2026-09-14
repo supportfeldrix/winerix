@@ -112,6 +112,25 @@ function HarvestProfile() {
                   ) : '—'}
                 </DetailItem>
               </Grid>
+              {record.plantingId && (
+                <>
+                  <Grid item xs={6} sm={3}>
+                    <DetailItem label="Planting">
+                      {record.blockId ? (
+                        <Link component="button" type="button" underline="hover" onClick={() => navigate(`/blocks/${record.blockId}`)} sx={{ color: 'primary.main', fontWeight: 600 }}>
+                          {record.cultivarName || 'View planting'}
+                          {record.plantingStatus && record.plantingStatus !== 'active' ? ` (${record.plantingStatus})` : ''}
+                        </Link>
+                      ) : (
+                        `${record.cultivarName || 'Planting'}${record.plantingStatus && record.plantingStatus !== 'active' ? ` (${record.plantingStatus})` : ''}`
+                      )}
+                    </DetailItem>
+                  </Grid>
+                  <Grid item xs={6} sm={3}>
+                    <DetailItem label="Cultivar">{record.cultivarName || '—'}</DetailItem>
+                  </Grid>
+                </>
+              )}
               <Grid item xs={6} sm={3}><DetailItem label="Harvest Date">{formatDate(record.harvestDate)}</DetailItem></Grid>
               <Grid item xs={6} sm={3}><DetailItem label="Yield">{record.yieldTons != null ? `${formatNumber(record.yieldTons)} t` : '—'}</DetailItem></Grid>
               <Grid item xs={6} sm={3}><DetailItem label="Created">{formatDate(record.createdAt)}</DetailItem></Grid>

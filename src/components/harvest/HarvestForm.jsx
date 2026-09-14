@@ -4,11 +4,13 @@ import {
   Button, Stack, CircularProgress, Alert, InputAdornment,
 } from '@mui/material';
 import {
-  HARVEST_STATUSES, getVineyardOptions, getBlockOptions, friendlyHarvestError,
+  HARVEST_STATUSES, getVineyardOptions, getBlockOptions,
+  getPlantingOptionsByBlock, friendlyHarvestError,
 } from '../../services/harvestService';
 
 const NO_BLOCK = '';
-const EMPTY = { title: '', vineyardId: '', blockId: NO_BLOCK, status: 'planned', harvestDate: '', yieldTons: '' };
+const NO_PLANTING = '';
+const EMPTY = { title: '', vineyardId: '', blockId: NO_BLOCK, plantingId: NO_PLANTING, status: 'planned', harvestDate: '', yieldTons: '' };
 
 function HarvestForm({
   open, record, vineyardOptions, blockOptions, defaultVineyardId = '',
@@ -22,6 +24,10 @@ function HarvestForm({
   const [loadingOptions, setLoadingOptions] = useState(false);
   const [optionsError, setOptionsError] = useState('');
 
+  // Planting options for the currently-selected block.
+  const [plantings, setPlantings] = useState([]);
+  const [loadingPlantings, setLoadingPlantings] = useState(false);
+
   useEffect(() => {
     if (!open) return;
     if (record) {
@@ -29,6 +35,7 @@ function HarvestForm({
         title: record.title || '',
         vineyardId: record.vineyardId || '',
         blockId: record.blockId || NO_BLOCK,
+        plantingId: record.plantingId || NO_PLANTING,
         status: record.status || 'planned',
         harvestDate: record.harvestDate || '',
         yieldTons: record.yieldTons != null ? String(record.yieldTons) : '',
@@ -58,15 +65,57 @@ function HarvestForm({
     [blocks, values.vineyardId]
   );
 
+  // Load active plantings for the selected block. In edit mode, if the record's
+  // planting is now inactive/removed (not in the active list), merge it in so it
+  // still displays and does not force reselection.
+  useEffect(() => {
+    if (!open) return;
+    if (!values.blockId) { setPlantings([]); return; }
+    let active = true;
+    setLoadingPlantings(true);
+    getPlantingOptionsByBlock(values.blockId).then(({ data }) => {
+      if (!active) return;
+      let opts = data || [];
+      if (
+        record &&
+        record.plantingId &&
+        record.blockId === values.blockId &&
+        !opts.some((o) => o.id === record.plantingId)
+      ) {
+        opts = [
+          ...opts,
+          {
+            id: record.plantingId,
+            plantingYear: record.plantingYear || null,
+            cultivarId: record.cultivarId || null,
+            cultivarName: record.cultivarName || 'Unknown cultivar',
+            cultivarColour: record.cultivarColour || null,
+          },
+        ];
+      }
+      setPlantings(opts);
+      setLoadingPlantings(false);
+    });
+    return () => { active = false; };
+  }, [open, values.blockId, record]);
+
   const setField = (field) => (e) => {
     const value = e.target.value;
     setValues((prev) => {
       const next = { ...prev, [field]: value };
-      if (field === 'vineyardId') next.blockId = NO_BLOCK;
+      // Changing vineyard clears block + planting; changing block clears planting.
+      if (field === 'vineyardId') { next.blockId = NO_BLOCK; next.plantingId = NO_PLANTING; }
+      if (field === 'blockId') { next.plantingId = NO_PLANTING; }
       return next;
     });
     setErrors((prev) => ({ ...prev, [field]: undefined }));
   };
+
+  // Derived cultivar name for the currently selected planting (read-only).
+  const selectedPlanting = useMemo(
+    () => plantings.find((p) => p.id === values.plantingId) || null,
+    [plantings, values.plantingId]
+  );
 
   const validate = () => {
     const next = {};
@@ -95,6 +144,8 @@ function HarvestForm({
       title: values.title.trim(),
       vineyardId: values.vineyardId,
       blockId: values.blockId || null,
+      // A planting is only valid when a block is selected; otherwise clear it.
+      plantingId: values.blockId ? (values.plantingId || null) : null,
       status: values.status,
       harvestDate: values.harvestDate || null,
       yieldTons: values.yieldTons === '' ? null : Number(values.yieldTons),
@@ -127,6 +178,29 @@ function HarvestForm({
             <MenuItem value={NO_BLOCK}><em>None</em></MenuItem>
             {availableBlocks.map((b) => <MenuItem key={b.id} value={b.id}>{b.name}</MenuItem>)}
           </TextField>
+          <TextField label="Planting" value={loadingPlantings ? '' : values.plantingId} onChange={setField('plantingId')}
+            helperText={
+              !values.blockId
+                ? 'Select a block first'
+                : loadingPlantings
+                  ? 'Loading plantings…'
+                  : plantings.length === 0
+                    ? 'No plantings in this block'
+                    : 'Optional'
+            }
+            fullWidth select disabled={saving || loadingPlantings || !values.blockId}>
+            <MenuItem value={NO_PLANTING}><em>None</em></MenuItem>
+            {plantings.map((p) => (
+              <MenuItem key={p.id} value={p.id}>
+                {p.cultivarName}{p.plantingYear ? ` · ${p.plantingYear}` : ''}
+              </MenuItem>
+            ))}
+          </TextField>
+          {values.plantingId && selectedPlanting && (
+            <TextField label="Cultivar" value={selectedPlanting.cultivarName || '—'}
+              fullWidth disabled InputProps={{ readOnly: true }}
+              helperText="Derived from the selected planting" />
+          )}
           <TextField label="Harvest Date" type="date" value={values.harvestDate} onChange={setField('harvestDate')}
             fullWidth disabled={saving} InputLabelProps={{ shrink: true }} helperText="Optional" />
           <TextField label="Yield" type="number" value={values.yieldTons} onChange={setField('yieldTons')}
