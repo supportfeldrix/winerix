@@ -10,10 +10,12 @@ import DeleteOutlineOutlinedIcon from '@mui/icons-material/DeleteOutlineOutlined
 import LinkOffOutlinedIcon from '@mui/icons-material/LinkOffOutlined';
 import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
 import ScaleOutlinedIcon from '@mui/icons-material/ScaleOutlined';
+import WaterOutlinedIcon from '@mui/icons-material/WaterOutlined';
 import PageContainer from '../layout/PageContainer';
 import WineBatchForm from './WineBatchForm';
 import BatchIntakeForm from './BatchIntakeForm';
 import { batchStatusColor } from './WineBatchTable';
+import { lotStatusColor, lotStatusLabel } from '../lots/WineLotTable';
 import ConfirmDialog from '../common/ConfirmDialog';
 import { formatDate, formatNumber } from '../common/formatters';
 import { useOrganisation } from '../../context/OrganisationContext';
@@ -22,6 +24,7 @@ import {
   getBatchIntakes, getIntakeOptions, addIntakeToBatch, updateBatchIntake,
   removeIntakeFromBatch, sumContributedKg, friendlyWineBatchError,
 } from '../../services/wineBatchService';
+import { getWineLotsByBatch, friendlyWineLotError } from '../../services/wineLotService';
 
 // Grape-intake status → chip colour (matches the harvest-side convention).
 function intakeStatusChip(status) {
@@ -66,6 +69,11 @@ function WineBatchProfile() {
   const [removeTarget, setRemoveTarget] = useState(null);
   const [removing, setRemoving] = useState(false);
 
+  // ── Wine lots produced from this batch (read-only summary) ──────────────
+  const [lots, setLots] = useState([]);
+  const [lotsLoading, setLotsLoading] = useState(true);
+  const [lotsError, setLotsError] = useState('');
+
   const load = useCallback(async () => {
     setLoading(true); setError('');
     const { data, error: err } = await getWineBatch(id);
@@ -82,13 +90,22 @@ function WineBatchProfile() {
     setLinksLoading(false);
   }, [id]);
 
-  // Reload batch + links on mount, id change, and whenever the active
+  const loadLots = useCallback(async () => {
+    setLotsLoading(true); setLotsError('');
+    const { data, error: err } = await getWineLotsByBatch(id);
+    if (err) { setLotsError(friendlyWineLotError(err)); setLots([]); }
+    else setLots(data || []);
+    setLotsLoading(false);
+  }, [id]);
+
+  // Reload batch + links + lots on mount, id change, and whenever the active
   // organisation changes (so no stale cross-org data is shown).
   useEffect(() => {
     if (!activeOrgId) return;
     load();
     loadLinks();
-  }, [activeOrgId, load, loadLinks]);
+    loadLots();
+  }, [activeOrgId, load, loadLinks, loadLots]);
 
   const handleEditSubmit = async (values) => {
     setSaving(true);
@@ -284,6 +301,67 @@ function WineBatchProfile() {
                     )}
                   </Box>
                 </>
+              )}
+            </Box>
+          </Paper>
+
+          {/* ── Wine Lots produced from this batch (read-only summary) ── */}
+          <Paper sx={{ p: { xs: 2.5, md: 4 }, mt: { xs: 3, md: 4 } }}>
+            <Box sx={{ mb: 1 }}>
+              <Typography variant="h4" component="h2" sx={{ mb: 0.5 }}>Wine Lots</Typography>
+              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                Movable volumes of wine produced from this batch. Manage lots from the Wine Lots page.
+              </Typography>
+            </Box>
+
+            {lotsError && (
+              <Alert severity="error" sx={{ my: 2 }} onClose={() => setLotsError('')}>{lotsError}</Alert>
+            )}
+
+            <Box sx={{ mt: 2 }}>
+              {lotsLoading ? (
+                <Box>
+                  <Skeleton height={44} />
+                  <Skeleton height={44} sx={{ mt: 1 }} />
+                </Box>
+              ) : lots.length === 0 ? (
+                <Paper variant="outlined" sx={{ borderStyle: 'dashed', borderColor: 'divider', bgcolor: 'background.subtle', px: 3, py: { xs: 4, md: 5 }, textAlign: 'center' }}>
+                  <Box sx={{ width: 56, height: 56, borderRadius: '50%', bgcolor: 'background.paper', display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 1.5, color: 'secondary.main' }}>
+                    <WaterOutlinedIcon sx={{ fontSize: '1.7rem' }} />
+                  </Box>
+                  <Typography variant="body1" sx={{ color: 'text.secondary', maxWidth: 460, mx: 'auto' }}>
+                    No wine lots produced from this batch yet. Create lots from the Wine Lots page.
+                  </Typography>
+                </Paper>
+              ) : (
+                <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden' }}>
+                  <Table sx={{ minWidth: 560 }} aria-label="Wine lots from this batch">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Lot Code</TableCell>
+                        <TableCell align="right">Volume</TableCell>
+                        <TableCell>Status</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {lots.map((lot) => (
+                        <TableRow key={lot.id} hover sx={{ '& .MuiTableCell-root': { py: 1.5 }, opacity: ['depleted', 'archived'].includes(lot.status) ? 0.6 : 1 }}>
+                          <TableCell>
+                            <Link component="button" type="button" underline="hover" onClick={() => navigate(`/wine-lots/${lot.id}`)} sx={{ color: 'primary.main', fontWeight: 700, textAlign: 'left' }}>
+                              {lot.lotCode}
+                            </Link>
+                          </TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 600 }}>
+                            {lot.volumeLitres != null ? `${formatNumber(lot.volumeLitres)} L` : '—'}
+                          </TableCell>
+                          <TableCell>
+                            <Chip label={lotStatusLabel(lot.status)} size="small" color={lotStatusColor(lot.status)} sx={{ fontWeight: 600 }} />
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
               )}
             </Box>
           </Paper>
