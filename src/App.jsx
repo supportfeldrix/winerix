@@ -22,6 +22,8 @@ import SprayProgramme from './pages/SprayProgramme';
 import SprayProgrammeProfile from './components/spray/SprayProgrammeProfile';
 import Harvest from './pages/Harvest';
 import HarvestProfile from './components/harvest/HarvestProfile';
+import WineBatches from './pages/WineBatches';
+import WineBatchProfile from './components/batches/WineBatchProfile';
 import Machinery from './pages/Machinery';
 import MachineryProfile from './components/machinery/MachineryProfile';
 import Finance from './pages/Finance';
@@ -245,6 +247,8 @@ function App() {
             <Route path="/spray-programme/:id" element={<SprayProgrammeProfile />} />
             <Route path="/harvest" element={<Harvest />} />
             <Route path="/harvest/:id" element={<HarvestProfile />} />
+            <Route path="/wine-batches" element={<WineBatches />} />
+            <Route path="/wine-batches/:id" element={<WineBatchProfile />} />
             <Route path="/machinery" element={<Machinery />} />
             <Route path="/machinery/:id" element={<MachineryProfile />} />
             <Route path="/finance" element={<Finance />} />
