@@ -18,6 +18,9 @@ import { useOrganisation } from '../../context/OrganisationContext';
 import {
   getVessel, updateVessel, deleteVessel, getVesselPlacements, friendlyVesselError,
 } from '../../services/vesselService';
+import {
+  getProductionEventsByVessel, productionEventTypeLabel, friendlyProductionEventError,
+} from '../../services/productionEventService';
 
 function DetailItem({ label, children }) {
   return (
@@ -38,6 +41,8 @@ function VesselProfile() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [placementsError, setPlacementsError] = useState('');
+  const [events, setEvents] = useState([]);
+  const [eventsError, setEventsError] = useState('');
   const [editOpen, setEditOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -45,16 +50,19 @@ function VesselProfile() {
   const [toast, setToast] = useState('');
 
   const load = useCallback(async () => {
-    setLoading(true); setError(''); setPlacementsError('');
+    setLoading(true); setError(''); setPlacementsError(''); setEventsError('');
     const { data, error: err } = await getVessel(id);
-    if (err) { setError(friendlyVesselError(err)); setVessel(null); setPlacements([]); setLoading(false); return; }
+    if (err) { setError(friendlyVesselError(err)); setVessel(null); setPlacements([]); setEvents([]); setLoading(false); return; }
     setVessel(data);
-    // Placements are a SECONDARY lookup: a failure here must not blank the
-    // vessel record or raise the primary fatal banner. Surface it as a soft,
-    // non-blocking notice scoped to the placement sections instead.
+    // Placements + production events are SECONDARY lookups: a failure here must
+    // not blank the vessel record or raise the primary fatal banner. Surface
+    // them as soft, non-blocking notices scoped to their sections instead.
     const { data: pl, error: plErr } = await getVesselPlacements(id);
     if (plErr) { setPlacementsError(friendlyVesselError(plErr)); setPlacements([]); }
     else setPlacements(pl || []);
+    const { data: ev, error: evErr } = await getProductionEventsByVessel(id);
+    if (evErr) { setEventsError(friendlyProductionEventError(evErr)); setEvents([]); }
+    else setEvents(ev || []);
     setLoading(false);
   }, [id]);
 
@@ -223,6 +231,55 @@ function VesselProfile() {
                         <TableCell sx={{ color: 'text.secondary' }}>{p.removedAt ? formatDate(p.removedAt) : '—'}</TableCell>
                         <TableCell>
                           <Chip label={p.isOpen ? 'Current' : 'Past'} size="small" color={p.isOpen ? 'success' : 'default'} sx={{ fontWeight: 600 }} />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
+          </Paper>
+
+          {/* ── Production Events referencing this vessel (read-only) ──── */}
+          <Paper sx={{ p: { xs: 2.5, md: 4 }, mt: { xs: 3, md: 4 } }}>
+            <Typography variant="h4" component="h2" sx={{ mb: 0.5 }}>Production Events</Typography>
+            <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
+              Cellar operations recorded against this vessel. Manage events from a wine lot&apos;s profile.
+            </Typography>
+            {eventsError && (
+              <Alert severity="info" sx={{ mb: 2 }} onClose={() => setEventsError('')}>{eventsError}</Alert>
+            )}
+            {events.length === 0 ? (
+              <Paper variant="outlined" sx={{ borderStyle: 'dashed', borderColor: 'divider', bgcolor: 'background.subtle', px: 3, py: { xs: 4, md: 5 }, textAlign: 'center' }}>
+                <Typography variant="body1" sx={{ color: 'text.secondary' }}>No production events reference this vessel.</Typography>
+              </Paper>
+            ) : (
+              <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden' }}>
+                <Table sx={{ minWidth: 680 }} aria-label="Production events">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Event</TableCell>
+                      <TableCell>Date &amp; Time</TableCell>
+                      <TableCell>Wine Lot</TableCell>
+                      <TableCell>Notes</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {events.map((ev) => (
+                      <TableRow key={ev.id} hover sx={{ '& .MuiTableCell-root': { py: 1.5 } }}>
+                        <TableCell>
+                          <Chip label={productionEventTypeLabel(ev.eventType)} size="small" color="secondary" sx={{ fontWeight: 600 }} />
+                        </TableCell>
+                        <TableCell sx={{ color: 'text.secondary' }}>{formatDate(ev.eventAt)}</TableCell>
+                        <TableCell>
+                          {ev.wineLotId ? (
+                            <Link component="button" type="button" underline="hover" onClick={() => navigate(`/wine-lots/${ev.wineLotId}`)} sx={{ color: 'primary.main', fontWeight: 600, textAlign: 'left' }}>
+                              {ev.lotCode || 'View lot'}
+                            </Link>
+                          ) : '—'}
+                        </TableCell>
+                        <TableCell sx={{ color: 'text.secondary', maxWidth: 320 }}>
+                          <Typography variant="body2" sx={{ color: 'text.secondary', whiteSpace: 'pre-wrap' }}>{ev.notes || '—'}</Typography>
                         </TableCell>
                       </TableRow>
                     ))}

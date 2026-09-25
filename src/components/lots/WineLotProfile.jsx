@@ -24,9 +24,15 @@ import {
   getWineLotWithBatch, updateWineLot, deleteWineLot, friendlyWineLotError,
 } from '../../services/wineLotService';
 import {
-  getCurrentWineLotPlacement, getAvailableVesselOptions,
+  getCurrentWineLotPlacement, getAvailableVesselOptions, getWineLotPlacements,
   placeWineLot, transferWineLot, removeWineLotFromVessel, friendlyVesselError,
 } from '../../services/vesselService';
+import ProductionEventForm from './ProductionEventForm';
+import {
+  getProductionEventsByLot, createProductionEvent,
+  productionEventTypeLabel, friendlyProductionEventError,
+} from '../../services/productionEventService';
+import HistoryOutlinedIcon from '@mui/icons-material/HistoryOutlined';
 
 // Grape-intake status → chip colour (matches the harvest/batch-side convention).
 function intakeStatusChip(status) {
@@ -71,6 +77,14 @@ function WineLotProfile() {
   const [confirmRemove, setConfirmRemove] = useState(false);
   const [removing, setRemoving] = useState(false);
 
+  // ── Production events (immutable history) ───────────────────────────────
+  const [events, setEvents] = useState([]);
+  const [eventsLoading, setEventsLoading] = useState(true);
+  const [eventsError, setEventsError] = useState('');
+  const [eventFormOpen, setEventFormOpen] = useState(false);
+  const [eventSaving, setEventSaving] = useState(false);
+  const [lotPlacements, setLotPlacements] = useState([]);
+
   const load = useCallback(async () => {
     setLoading(true); setError('');
     const { data, error: err } = await getWineLotWithBatch(id);
@@ -87,13 +101,47 @@ function WineLotProfile() {
     setPlacementLoading(false);
   }, [id]);
 
+  const loadEvents = useCallback(async () => {
+    setEventsLoading(true); setEventsError('');
+    const { data, error: err } = await getProductionEventsByLot(id);
+    if (err) { setEventsError(friendlyProductionEventError(err)); setEvents([]); }
+    else setEvents(data || []);
+    setEventsLoading(false);
+  }, [id]);
+
   // Reload on mount, id change, and whenever the active organisation changes
   // (so no stale cross-org data is shown).
   useEffect(() => {
     if (!activeOrgId) return;
     load();
     loadPlacement();
-  }, [activeOrgId, load, loadPlacement]);
+    loadEvents();
+  }, [activeOrgId, load, loadPlacement, loadEvents]);
+
+  const openEventForm = async () => {
+    setEventFormOpen(true);
+    // Load active vessels + this lot's placements for the (optional) selectors.
+    setOptionsLoading(true);
+    const [{ data: vessels, error: vErr }, { data: placements, error: pErr }] = await Promise.all([
+      getAvailableVesselOptions(),
+      getWineLotPlacements(id),
+    ]);
+    setOptionsLoading(false);
+    if (vErr) { setEventsError(friendlyVesselError(vErr)); setVesselOptions([]); }
+    else setVesselOptions(vessels || []);
+    if (pErr) setLotPlacements([]);
+    else setLotPlacements(placements || []);
+  };
+
+  const handleEventSubmit = async (values) => {
+    setEventSaving(true);
+    const { error: err } = await createProductionEvent({ ...values, wineLotId: id });
+    setEventSaving(false);
+    if (err) { setEventsError(friendlyProductionEventError(err)); return; }
+    setEventFormOpen(false);
+    setToast('Production event recorded.');
+    await loadEvents();
+  };
 
   const openVesselDialog = async (mode) => {
     setVesselDialog(mode);
@@ -315,10 +363,90 @@ function WineLotProfile() {
               )}
             </Box>
           </Paper>
+
+          {/* ── Production History (immutable events) ──────────────────── */}
+          <Paper sx={{ p: { xs: 2.5, md: 4 }, mt: { xs: 3, md: 4 } }}>
+            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'center' }, justifyContent: 'space-between', gap: 2, mb: 1 }}>
+              <Box>
+                <Typography variant="h4" component="h2" sx={{ mb: 0.5 }}>Production History</Typography>
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                  A record of cellar operations performed on this lot. Events are kept as history and cannot be edited.
+                </Typography>
+              </Box>
+              <Button variant="contained" color="primary" startIcon={<AddOutlinedIcon />} onClick={openEventForm} sx={{ flexShrink: 0 }}>
+                Add Event
+              </Button>
+            </Box>
+
+            {eventsError && (
+              <Alert severity="error" sx={{ my: 2 }} onClose={() => setEventsError('')}>{eventsError}</Alert>
+            )}
+
+            <Box sx={{ mt: 2 }}>
+              {eventsLoading ? (
+                <Box>
+                  <Skeleton height={44} />
+                  <Skeleton height={44} sx={{ mt: 1 }} />
+                </Box>
+              ) : events.length === 0 ? (
+                <Paper variant="outlined" sx={{ borderStyle: 'dashed', borderColor: 'divider', bgcolor: 'background.subtle', px: 3, py: { xs: 4, md: 5 }, textAlign: 'center' }}>
+                  <Box sx={{ width: 56, height: 56, borderRadius: '50%', bgcolor: 'background.paper', display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 1.5, color: 'accent.main' }}>
+                    <HistoryOutlinedIcon sx={{ fontSize: '1.7rem' }} />
+                  </Box>
+                  <Typography variant="body1" sx={{ color: 'text.secondary', maxWidth: 460, mx: 'auto' }}>
+                    No production events recorded yet. Add an event to record a cellar operation on this lot.
+                  </Typography>
+                </Paper>
+              ) : (
+                <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden' }}>
+                  <Table sx={{ minWidth: 720 }} aria-label="Production history">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Event</TableCell>
+                        <TableCell>Date &amp; Time</TableCell>
+                        <TableCell>Vessel</TableCell>
+                        <TableCell>Notes</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {events.map((ev) => (
+                        <TableRow key={ev.id} hover sx={{ '& .MuiTableCell-root': { py: 1.5 } }}>
+                          <TableCell>
+                            <Chip label={productionEventTypeLabel(ev.eventType)} size="small" color="secondary" sx={{ fontWeight: 600 }} />
+                          </TableCell>
+                          <TableCell sx={{ color: 'text.secondary' }}>{formatDate(ev.eventAt)}</TableCell>
+                          <TableCell>
+                            {ev.vesselId ? (
+                              <Link component="button" type="button" underline="hover" onClick={() => navigate(`/vessels/${ev.vesselId}`)} sx={{ color: 'primary.main', fontWeight: 600, textAlign: 'left' }}>
+                                {ev.vesselCode || 'View vessel'}
+                              </Link>
+                            ) : <Typography variant="body2" sx={{ color: 'text.secondary' }}>—</Typography>}
+                          </TableCell>
+                          <TableCell sx={{ color: 'text.secondary', maxWidth: 320 }}>
+                            <Typography variant="body2" sx={{ color: 'text.secondary', whiteSpace: 'pre-wrap' }}>{ev.notes || '—'}</Typography>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              )}
+            </Box>
+          </Paper>
         </>
       ) : null}
 
       <WineLotForm open={editOpen} lot={lot} saving={saving} onSubmit={handleEditSubmit} onClose={() => setEditOpen(false)} />
+
+      <ProductionEventForm
+        open={eventFormOpen}
+        vesselOptions={vesselOptions}
+        lotPlacements={lotPlacements}
+        optionsLoading={optionsLoading}
+        saving={eventSaving}
+        onSubmit={handleEventSubmit}
+        onClose={() => setEventFormOpen(false)}
+      />
 
       <PlaceLotDialog
         open={Boolean(vesselDialog)}
