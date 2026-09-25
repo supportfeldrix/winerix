@@ -32,7 +32,19 @@ import {
   getProductionEventsByLot, createProductionEvent,
   productionEventTypeLabel, friendlyProductionEventError,
 } from '../../services/productionEventService';
+import { getWineLots } from '../../services/wineLotService';
+import LotVolumeOperationDialog from './LotVolumeOperationDialog';
+import {
+  getLotLineage, getLotVolumeHistory, movementTypeLabel,
+  splitLot, mergeLots, blendLots, recordLoss, recordAdjustment, friendlyLineageError,
+} from '../../services/lotLineageService';
 import HistoryOutlinedIcon from '@mui/icons-material/HistoryOutlined';
+import CallSplitOutlinedIcon from '@mui/icons-material/CallSplitOutlined';
+import MergeOutlinedIcon from '@mui/icons-material/MergeOutlined';
+import BlenderOutlinedIcon from '@mui/icons-material/BlenderOutlined';
+import RemoveCircleOutlineOutlinedIcon from '@mui/icons-material/RemoveCircleOutlineOutlined';
+import TuneOutlinedIcon from '@mui/icons-material/TuneOutlined';
+import AccountTreeOutlinedIcon from '@mui/icons-material/AccountTreeOutlined';
 
 // Grape-intake status → chip colour (matches the harvest/batch-side convention).
 function intakeStatusChip(status) {
@@ -85,6 +97,16 @@ function WineLotProfile() {
   const [eventSaving, setEventSaving] = useState(false);
   const [lotPlacements, setLotPlacements] = useState([]);
 
+  // ── Lineage + volume ledger (P2H-1) ─────────────────────────────────────
+  const [lineage, setLineage] = useState({ parents: [], children: [] });
+  const [lineageLoading, setLineageLoading] = useState(true);
+  const [movements, setMovements] = useState([]);
+  const [movementsLoading, setMovementsLoading] = useState(true);
+  const [volumeError, setVolumeError] = useState('');
+  const [opMode, setOpMode] = useState(null); // 'split'|'merge'|'blend'|'loss'|'adjustment'|null
+  const [opSaving, setOpSaving] = useState(false);
+  const [otherLots, setOtherLots] = useState([]);
+
   const load = useCallback(async () => {
     setLoading(true); setError('');
     const { data, error: err } = await getWineLotWithBatch(id);
@@ -109,6 +131,22 @@ function WineLotProfile() {
     setEventsLoading(false);
   }, [id]);
 
+  const loadLineage = useCallback(async () => {
+    setLineageLoading(true);
+    const { data, error: err } = await getLotLineage(id);
+    if (err) { setVolumeError(friendlyLineageError(err)); setLineage({ parents: [], children: [] }); }
+    else setLineage(data || { parents: [], children: [] });
+    setLineageLoading(false);
+  }, [id]);
+
+  const loadMovements = useCallback(async () => {
+    setMovementsLoading(true);
+    const { data, error: err } = await getLotVolumeHistory(id);
+    if (err) { setVolumeError(friendlyLineageError(err)); setMovements([]); }
+    else setMovements(data || []);
+    setMovementsLoading(false);
+  }, [id]);
+
   // Reload on mount, id change, and whenever the active organisation changes
   // (so no stale cross-org data is shown).
   useEffect(() => {
@@ -116,7 +154,41 @@ function WineLotProfile() {
     load();
     loadPlacement();
     loadEvents();
-  }, [activeOrgId, load, loadPlacement, loadEvents]);
+    loadLineage();
+    loadMovements();
+  }, [activeOrgId, load, loadPlacement, loadEvents, loadLineage, loadMovements]);
+
+  // Refresh everything volume-related after a ledger operation.
+  const reloadVolumeState = useCallback(async () => {
+    await Promise.all([load(), loadLineage(), loadMovements()]);
+  }, [load, loadLineage, loadMovements]);
+
+  const openOperation = async (mode) => {
+    setVolumeError('');
+    setOpMode(mode);
+    // Merge/blend need other org lots as potential sources.
+    if (mode === 'merge' || mode === 'blend') {
+      const { data, error: err } = await getWineLots();
+      if (err) { setOtherLots([]); return; }
+      setOtherLots((data || []).filter((l) => l.id !== id && !['depleted', 'archived'].includes(l.status)));
+    }
+  };
+
+  const handleOperationSubmit = async (payload) => {
+    setOpSaving(true);
+    let err = null;
+    if (opMode === 'split') ({ error: err } = await splitLot(id, payload.children, payload.notes));
+    else if (opMode === 'merge') ({ error: err } = await mergeLots(payload.sources, payload.newLotCode, payload.notes));
+    else if (opMode === 'blend') ({ error: err } = await blendLots(payload.sources, payload.newLotCode, payload.notes));
+    else if (opMode === 'loss') ({ error: err } = await recordLoss(id, payload.volume, payload.notes));
+    else if (opMode === 'adjustment') ({ error: err } = await recordAdjustment(id, payload.delta, payload.notes));
+    setOpSaving(false);
+    if (err) { setVolumeError(friendlyLineageError(err)); return; }
+    const label = { split: 'Lot split.', merge: 'Lots merged.', blend: 'Lots blended.', loss: 'Loss recorded.', adjustment: 'Adjustment recorded.' }[opMode] || 'Done.';
+    setOpMode(null);
+    setToast(label);
+    await reloadVolumeState();
+  };
 
   const openEventForm = async () => {
     setEventFormOpen(true);
@@ -433,10 +505,127 @@ function WineLotProfile() {
               )}
             </Box>
           </Paper>
+
+          {/* ── Lineage & Volume Management (P2H-1) ────────────────────── */}
+          <Paper sx={{ p: { xs: 2.5, md: 4 }, mt: { xs: 3, md: 4 } }}>
+            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, alignItems: { xs: 'stretch', md: 'center' }, justifyContent: 'space-between', gap: 2, mb: 1 }}>
+              <Box>
+                <Typography variant="h4" component="h2" sx={{ mb: 0.5 }}>Lineage &amp; Volume</Typography>
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                  Split, merge, blend, or record loss/adjustments. Volume changes are recorded in the ledger below.
+                </Typography>
+              </Box>
+              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', flexShrink: 0 }}>
+                <Button size="small" variant="outlined" color="primary" startIcon={<CallSplitOutlinedIcon />} onClick={() => openOperation('split')}>Split</Button>
+                <Button size="small" variant="outlined" color="primary" startIcon={<MergeOutlinedIcon />} onClick={() => openOperation('merge')}>Merge</Button>
+                <Button size="small" variant="outlined" color="primary" startIcon={<BlenderOutlinedIcon />} onClick={() => openOperation('blend')}>Blend</Button>
+                <Button size="small" variant="outlined" color="secondary" startIcon={<RemoveCircleOutlineOutlinedIcon />} onClick={() => openOperation('loss')}>Loss</Button>
+                <Button size="small" variant="outlined" color="secondary" startIcon={<TuneOutlinedIcon />} onClick={() => openOperation('adjustment')}>Adjust</Button>
+              </Box>
+            </Box>
+
+            {volumeError && (
+              <Alert severity="error" sx={{ my: 2 }} onClose={() => setVolumeError('')}>{volumeError}</Alert>
+            )}
+
+            {/* Lineage */}
+            <Box sx={{ mt: 2 }}>
+              <Typography variant="overline" sx={{ color: 'text.secondary' }}>Lineage</Typography>
+              {lineageLoading ? (
+                <Skeleton height={40} />
+              ) : (lineage.parents.length === 0 && lineage.children.length === 0) ? (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.secondary', py: 1 }}>
+                  <AccountTreeOutlinedIcon sx={{ fontSize: '1.2rem' }} />
+                  <Typography variant="body2">No lineage yet — this lot has no recorded parents or children.</Typography>
+                </Box>
+              ) : (
+                <Grid container spacing={2} sx={{ mt: 0.5 }}>
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>Parents</Typography>
+                    {lineage.parents.length === 0 ? (
+                      <Typography variant="body2" sx={{ color: 'text.secondary' }}>—</Typography>
+                    ) : lineage.parents.map((p) => (
+                      <Box key={p.id} sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.25 }}>
+                        <Chip label={p.relationType} size="small" sx={{ textTransform: 'capitalize' }} />
+                        <Link component="button" type="button" underline="hover" onClick={() => navigate(`/wine-lots/${p.lotId}`)} sx={{ color: 'primary.main', fontWeight: 600 }}>{p.lotCode || 'View lot'}</Link>
+                        <Typography variant="body2" sx={{ color: 'text.secondary' }}>{formatNumber(p.volumeLitres)} L</Typography>
+                      </Box>
+                    ))}
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>Children</Typography>
+                    {lineage.children.length === 0 ? (
+                      <Typography variant="body2" sx={{ color: 'text.secondary' }}>—</Typography>
+                    ) : lineage.children.map((c) => (
+                      <Box key={c.id} sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.25 }}>
+                        <Chip label={c.relationType} size="small" sx={{ textTransform: 'capitalize' }} />
+                        <Link component="button" type="button" underline="hover" onClick={() => navigate(`/wine-lots/${c.lotId}`)} sx={{ color: 'primary.main', fontWeight: 600 }}>{c.lotCode || 'View lot'}</Link>
+                        <Typography variant="body2" sx={{ color: 'text.secondary' }}>{formatNumber(c.volumeLitres)} L</Typography>
+                      </Box>
+                    ))}
+                  </Grid>
+                </Grid>
+              )}
+            </Box>
+
+            <Divider sx={{ my: 3 }} />
+
+            {/* Volume history */}
+            <Box>
+              <Typography variant="overline" sx={{ color: 'text.secondary' }}>Volume History</Typography>
+              {movementsLoading ? (
+                <Skeleton height={44} />
+              ) : movements.length === 0 ? (
+                <Typography variant="body2" sx={{ color: 'text.secondary', py: 1 }}>No volume movements recorded.</Typography>
+              ) : (
+                <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden', mt: 0.5 }}>
+                  <Table sx={{ minWidth: 640 }} aria-label="Volume history">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Movement</TableCell>
+                        <TableCell align="right">Change</TableCell>
+                        <TableCell align="right">Balance</TableCell>
+                        <TableCell>Date</TableCell>
+                        <TableCell>Notes</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {movements.map((m) => {
+                        const delta = Number(m.volumeDeltaLitres) || 0;
+                        return (
+                          <TableRow key={m.id} hover sx={{ '& .MuiTableCell-root': { py: 1.5 } }}>
+                            <TableCell>{movementTypeLabel(m.movementType)}</TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 600, color: delta < 0 ? 'error.main' : 'success.main' }}>
+                              {delta >= 0 ? '+' : ''}{formatNumber(delta)} L
+                            </TableCell>
+                            <TableCell align="right" sx={{ color: 'text.secondary' }}>{formatNumber(m.runningBalance)} L</TableCell>
+                            <TableCell sx={{ color: 'text.secondary' }}>{formatDate(m.occurredAt)}</TableCell>
+                            <TableCell sx={{ color: 'text.secondary', maxWidth: 260 }}>
+                              <Typography variant="body2" noWrap sx={{ color: 'text.secondary' }}>{m.notes || '—'}</Typography>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              )}
+            </Box>
+          </Paper>
         </>
       ) : null}
 
       <WineLotForm open={editOpen} lot={lot} saving={saving} onSubmit={handleEditSubmit} onClose={() => setEditOpen(false)} />
+
+      <LotVolumeOperationDialog
+        open={Boolean(opMode)}
+        mode={opMode}
+        lot={lot}
+        otherLots={otherLots}
+        saving={opSaving}
+        onSubmit={handleOperationSubmit}
+        onClose={() => setOpMode(null)}
+      />
 
       <ProductionEventForm
         open={eventFormOpen}

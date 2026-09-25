@@ -233,13 +233,18 @@ export async function createWineLot(input) {
 }
 
 /**
- * Update a wine lot (active-org scoped). org_id, owner_id and wine_batch_id are
- * NEVER changed here: owner_id immutability is also enforced by a DB trigger,
- * and wine_batch_id is the lot's origin (future split/merge/lineage will handle
- * relationships between lots — not a casual batch reassignment).
+ * Update a wine lot's editable metadata (active-org scoped). org_id, owner_id
+ * and wine_batch_id are NEVER changed here (owner_id immutability is also
+ * enforced by a DB trigger; wine_batch_id is the lot's origin).
+ *
+ * IMPORTANT (P2H-1): volume_litres is NO LONGER writable here. The lot balance
+ * is maintained exclusively by the SECURITY DEFINER ledger operations
+ * (split / merge / blend / loss / adjustment) in lotLineageService, which update
+ * wine_lots.volume_litres and lot_volume_movements atomically. This closes the
+ * previous direct-edit second-writer path. Any volumeLitres in `input` is
+ * ignored. (Initial volume is still set on lot creation via createWineLot.)
  * @param {string} id
- * @param {{ lotCode?: string, volumeLitres?: number, status?: string,
- *   notes?: string|null }} input
+ * @param {{ lotCode?: string, status?: string, notes?: string|null }} input
  * @returns {Promise<{ data: object|null, error: object|null }>}
  */
 export async function updateWineLot(id, input) {
@@ -248,9 +253,9 @@ export async function updateWineLot(id, input) {
 
   const row = {};
   if (input.lotCode !== undefined) row.lot_code = input.lotCode;
-  if (input.volumeLitres !== undefined) row.volume_litres = input.volumeLitres ?? 0;
   if (input.status !== undefined) row.status = input.status;
   if (input.notes !== undefined) row.notes = input.notes || null;
+  // volume_litres intentionally NOT written here — see note above.
 
   const { data, error } = await supabase
     .from('wine_lots')

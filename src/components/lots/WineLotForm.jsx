@@ -77,13 +77,17 @@ function WineLotForm({
       next.lotCode = 'Lot code must be 60 characters or fewer.';
     }
 
-    if (values.volumeLitres === '' || values.volumeLitres == null) {
-      next.volumeLitres = 'Volume is required.';
-    } else {
-      const v = Number(values.volumeLitres);
-      if (Number.isNaN(v)) next.volumeLitres = 'Volume must be a number.';
-      else if (v < 0) next.volumeLitres = 'Volume cannot be negative.';
-      else if (v > 100000000) next.volumeLitres = 'Please enter a realistic volume.';
+    // Volume is only entered when CREATING a lot (initial balance). On edit the
+    // balance is read-only and changed only via ledger operations (P2H-1).
+    if (!isEdit) {
+      if (values.volumeLitres === '' || values.volumeLitres == null) {
+        next.volumeLitres = 'Volume is required.';
+      } else {
+        const v = Number(values.volumeLitres);
+        if (Number.isNaN(v)) next.volumeLitres = 'Volume must be a number.';
+        else if (v < 0) next.volumeLitres = 'Volume cannot be negative.';
+        else if (v > 100000000) next.volumeLitres = 'Please enter a realistic volume.';
+      }
     }
 
     if (!values.status) next.status = 'Please select a status.';
@@ -97,14 +101,23 @@ function WineLotForm({
     if (saving) return;
     if (!validate()) return;
 
-    const base = {
+    // Edit mode NEVER submits volume — the balance is owned by the ledger
+    // operations (Split / Merge / Blend / Loss / Adjustment).
+    if (isEdit) {
+      onSubmit({
+        lotCode: values.lotCode.trim(),
+        status: values.status,
+        notes: values.notes.trim() || null,
+      });
+      return;
+    }
+    onSubmit({
+      wineBatchId: values.wineBatchId,
       lotCode: values.lotCode.trim(),
       volumeLitres: Number(values.volumeLitres),
       status: values.status,
       notes: values.notes.trim() || null,
-    };
-    // Only include the batch on create; edit preserves the origin.
-    onSubmit(isEdit ? base : { ...base, wineBatchId: values.wineBatchId });
+    });
   };
 
   const noBatches = !isEdit && !optionsLoading && batchOptions.length === 0;
@@ -170,16 +183,23 @@ function WineLotForm({
 
           <TextField
             label="Volume"
-            type="number"
+            type={isEdit ? 'text' : 'number'}
             value={values.volumeLitres}
-            onChange={setField('volumeLitres')}
+            onChange={isEdit ? undefined : setField('volumeLitres')}
             error={Boolean(errors.volumeLitres)}
-            helperText={errors.volumeLitres || 'Required — current volume of wine'}
+            helperText={
+              isEdit
+                ? 'Read-only — change volume via Split, Merge, Blend, Loss or Adjustment on the lot profile.'
+                : (errors.volumeLitres || 'Required — initial volume of wine')
+            }
             fullWidth
-            required
+            required={!isEdit}
             disabled={saving || (!isEdit && noBatches)}
-            inputProps={{ min: 0, step: 'any' }}
-            InputProps={{ endAdornment: <InputAdornment position="end">L</InputAdornment> }}
+            InputProps={{
+              readOnly: isEdit,
+              endAdornment: <InputAdornment position="end">L</InputAdornment>,
+            }}
+            inputProps={isEdit ? undefined : { min: 0, step: 'any' }}
           />
 
           <TextField
