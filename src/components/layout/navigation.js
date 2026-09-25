@@ -16,6 +16,7 @@ import SanitizerOutlinedIcon from '@mui/icons-material/SanitizerOutlined';
 import AgricultureOutlinedIcon from '@mui/icons-material/AgricultureOutlined';
 import ScienceOutlinedIcon from '@mui/icons-material/ScienceOutlined';
 import WaterOutlinedIcon from '@mui/icons-material/WaterOutlined';
+import PropaneTankOutlinedIcon from '@mui/icons-material/PropaneTankOutlined';
 import PrecisionManufacturingOutlinedIcon from '@mui/icons-material/PrecisionManufacturingOutlined';
 import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined';
 import EventNoteOutlinedIcon from '@mui/icons-material/EventNoteOutlined';
@@ -36,6 +37,7 @@ export const MAIN_NAV = [
   { label: 'Harvest', path: '/harvest', icon: AgricultureOutlinedIcon },
   { label: 'Wine Batches', path: '/wine-batches', icon: ScienceOutlinedIcon },
   { label: 'Wine Lots', path: '/wine-lots', icon: WaterOutlinedIcon },
+  { label: 'Vessels', path: '/vessels', icon: PropaneTankOutlinedIcon },
   { label: 'Machinery', path: '/machinery', icon: PrecisionManufacturingOutlinedIcon },
   { label: 'Finance', path: '/finance', icon: PaymentsOutlinedIcon },
   { label: 'Planner', path: '/planner', icon: EventNoteOutlinedIcon },

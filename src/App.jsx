@@ -26,6 +26,8 @@ import WineBatches from './pages/WineBatches';
 import WineBatchProfile from './components/batches/WineBatchProfile';
 import WineLots from './pages/WineLots';
 import WineLotProfile from './components/lots/WineLotProfile';
+import Vessels from './pages/Vessels';
+import VesselProfile from './components/vessels/VesselProfile';
 import Machinery from './pages/Machinery';
 import MachineryProfile from './components/machinery/MachineryProfile';
 import Finance from './pages/Finance';
@@ -253,6 +255,8 @@ function App() {
             <Route path="/wine-batches/:id" element={<WineBatchProfile />} />
             <Route path="/wine-lots" element={<WineLots />} />
             <Route path="/wine-lots/:id" element={<WineLotProfile />} />
+            <Route path="/vessels" element={<Vessels />} />
+            <Route path="/vessels/:id" element={<VesselProfile />} />
             <Route path="/machinery" element={<Machinery />} />
             <Route path="/machinery/:id" element={<MachineryProfile />} />
             <Route path="/finance" element={<Finance />} />

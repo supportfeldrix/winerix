@@ -9,15 +9,24 @@ import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import DeleteOutlineOutlinedIcon from '@mui/icons-material/DeleteOutlineOutlined';
 import ScienceOutlinedIcon from '@mui/icons-material/ScienceOutlined';
 import ScaleOutlinedIcon from '@mui/icons-material/ScaleOutlined';
+import PropaneTankOutlinedIcon from '@mui/icons-material/PropaneTankOutlined';
+import SwapHorizOutlinedIcon from '@mui/icons-material/SwapHorizOutlined';
+import LogoutOutlinedIcon from '@mui/icons-material/LogoutOutlined';
+import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
 import PageContainer from '../layout/PageContainer';
 import WineLotForm from './WineLotForm';
 import { lotStatusColor, lotStatusLabel } from './WineLotTable';
+import PlaceLotDialog from '../vessels/PlaceLotDialog';
 import ConfirmDialog from '../common/ConfirmDialog';
 import { formatDate, formatNumber } from '../common/formatters';
 import { useOrganisation } from '../../context/OrganisationContext';
 import {
   getWineLotWithBatch, updateWineLot, deleteWineLot, friendlyWineLotError,
 } from '../../services/wineLotService';
+import {
+  getCurrentWineLotPlacement, getAvailableVesselOptions,
+  placeWineLot, transferWineLot, removeWineLotFromVessel, friendlyVesselError,
+} from '../../services/vesselService';
 
 // Grape-intake status → chip colour (matches the harvest/batch-side convention).
 function intakeStatusChip(status) {
@@ -51,6 +60,17 @@ function WineLotProfile() {
   const [deleting, setDeleting] = useState(false);
   const [toast, setToast] = useState('');
 
+  // ── Current vessel placement state ──────────────────────────────────────
+  const [placement, setPlacement] = useState(null);
+  const [placementLoading, setPlacementLoading] = useState(true);
+  const [placementError, setPlacementError] = useState('');
+  const [vesselDialog, setVesselDialog] = useState(null); // 'place' | 'transfer' | null
+  const [vesselOptions, setVesselOptions] = useState([]);
+  const [optionsLoading, setOptionsLoading] = useState(false);
+  const [vesselSaving, setVesselSaving] = useState(false);
+  const [confirmRemove, setConfirmRemove] = useState(false);
+  const [removing, setRemoving] = useState(false);
+
   const load = useCallback(async () => {
     setLoading(true); setError('');
     const { data, error: err } = await getWineLotWithBatch(id);
@@ -59,12 +79,52 @@ function WineLotProfile() {
     setLoading(false);
   }, [id]);
 
+  const loadPlacement = useCallback(async () => {
+    setPlacementLoading(true); setPlacementError('');
+    const { data, error: err } = await getCurrentWineLotPlacement(id);
+    if (err) { setPlacementError(friendlyVesselError(err)); setPlacement(null); }
+    else setPlacement(data);
+    setPlacementLoading(false);
+  }, [id]);
+
   // Reload on mount, id change, and whenever the active organisation changes
   // (so no stale cross-org data is shown).
   useEffect(() => {
     if (!activeOrgId) return;
     load();
-  }, [activeOrgId, load]);
+    loadPlacement();
+  }, [activeOrgId, load, loadPlacement]);
+
+  const openVesselDialog = async (mode) => {
+    setVesselDialog(mode);
+    setOptionsLoading(true);
+    const { data, error: err } = await getAvailableVesselOptions();
+    setOptionsLoading(false);
+    if (err) { setPlacementError(friendlyVesselError(err)); setVesselOptions([]); return; }
+    setVesselOptions(data || []);
+  };
+
+  const handleVesselSubmit = async ({ vesselId, at }) => {
+    setVesselSaving(true);
+    const isTransfer = vesselDialog === 'transfer';
+    const { error: err } = isTransfer
+      ? await transferWineLot(id, vesselId, at)
+      : await placeWineLot(id, vesselId, undefined, at);
+    setVesselSaving(false);
+    if (err) { setPlacementError(friendlyVesselError(err)); return; }
+    setVesselDialog(null);
+    setToast(isTransfer ? 'Wine lot transferred.' : 'Wine lot placed in vessel.');
+    await loadPlacement();
+  };
+
+  const handleRemoveFromVessel = async () => {
+    setRemoving(true);
+    const { error: err } = await removeWineLotFromVessel(id);
+    setRemoving(false); setConfirmRemove(false);
+    if (err) { setPlacementError(friendlyVesselError(err)); return; }
+    setToast('Wine lot removed from vessel.');
+    await loadPlacement();
+  };
 
   const handleEditSubmit = async (values) => {
     setSaving(true);
@@ -142,6 +202,60 @@ function WineLotProfile() {
             </Grid>
           </Paper>
 
+          {/* ── Current Vessel ────────────────────────────────────────── */}
+          <Paper sx={{ p: { xs: 2.5, md: 4 }, mt: { xs: 3, md: 4 } }}>
+            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'center' }, justifyContent: 'space-between', gap: 2, mb: 1 }}>
+              <Box>
+                <Typography variant="h4" component="h2" sx={{ mb: 0.5 }}>Current Vessel</Typography>
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                  Where this lot is currently held in the cellar.
+                </Typography>
+              </Box>
+              <Box sx={{ display: 'flex', gap: 1, flexShrink: 0, flexWrap: 'wrap' }}>
+                {placement ? (
+                  <>
+                    <Button variant="outlined" color="primary" startIcon={<SwapHorizOutlinedIcon />} onClick={() => openVesselDialog('transfer')}>Transfer</Button>
+                    <Button variant="outlined" color="secondary" startIcon={<LogoutOutlinedIcon />} onClick={() => setConfirmRemove(true)}>Remove</Button>
+                  </>
+                ) : (
+                  <Button variant="contained" color="primary" startIcon={<AddOutlinedIcon />} onClick={() => openVesselDialog('place')}>Place in Vessel</Button>
+                )}
+              </Box>
+            </Box>
+
+            {placementError && (
+              <Alert severity="error" sx={{ my: 2 }} onClose={() => setPlacementError('')}>{placementError}</Alert>
+            )}
+
+            <Box sx={{ mt: 2 }}>
+              {placementLoading ? (
+                <Skeleton height={72} />
+              ) : placement ? (
+                <Paper variant="outlined" sx={{ borderRadius: 3, p: { xs: 2, md: 2.5 }, display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <Box sx={{ width: 44, height: 44, borderRadius: 1.5, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'primary.main', bgcolor: 'action.hover' }}>
+                    <PropaneTankOutlinedIcon />
+                  </Box>
+                  <Grid container spacing={2} sx={{ flex: 1 }}>
+                    <Grid item xs={6} sm={3}>
+                      <DetailItem label="Vessel">
+                        <Link component="button" type="button" underline="hover" onClick={() => navigate(`/vessels/${placement.vesselId}`)} sx={{ color: 'primary.main', fontWeight: 600 }}>
+                          {placement.vesselCode || 'View vessel'}
+                        </Link>
+                      </DetailItem>
+                    </Grid>
+                    <Grid item xs={6} sm={3}><DetailItem label="Vessel Name">{placement.vesselName || '—'}</DetailItem></Grid>
+                    <Grid item xs={6} sm={3}><DetailItem label="Volume">{placement.volumeLitres != null ? `${formatNumber(placement.volumeLitres)} L` : '—'}</DetailItem></Grid>
+                    <Grid item xs={6} sm={3}><DetailItem label="Placed">{formatDate(placement.placedAt)}</DetailItem></Grid>
+                  </Grid>
+                </Paper>
+              ) : (
+                <Paper variant="outlined" sx={{ borderStyle: 'dashed', borderColor: 'divider', bgcolor: 'background.subtle', px: 3, py: { xs: 3, md: 4 }, textAlign: 'center' }}>
+                  <Typography variant="body1" sx={{ color: 'text.secondary' }}>Not currently assigned to a vessel.</Typography>
+                </Paper>
+              )}
+            </Box>
+          </Paper>
+
           {/* ── Traceability: grape intakes contributing to this lot's batch ── */}
           <Paper sx={{ p: { xs: 2.5, md: 4 }, mt: { xs: 3, md: 4 } }}>
             <Box sx={{ mb: 1 }}>
@@ -205,6 +319,23 @@ function WineLotProfile() {
       ) : null}
 
       <WineLotForm open={editOpen} lot={lot} saving={saving} onSubmit={handleEditSubmit} onClose={() => setEditOpen(false)} />
+
+      <PlaceLotDialog
+        open={Boolean(vesselDialog)}
+        mode={vesselDialog === 'transfer' ? 'transfer' : 'place'}
+        volumeLitres={lot ? lot.volumeLitres : null}
+        currentVesselId={placement ? placement.vesselId : null}
+        currentVesselLabel={placement ? [placement.vesselCode, placement.vesselName].filter(Boolean).join('  ·  ') : null}
+        options={vesselOptions}
+        optionsLoading={optionsLoading}
+        saving={vesselSaving}
+        onSubmit={handleVesselSubmit}
+        onClose={() => setVesselDialog(null)}
+      />
+
+      <ConfirmDialog open={confirmRemove} title="Remove from Vessel"
+        message={placement ? `Remove this lot from ${placement.vesselCode || 'its vessel'}? The placement history is preserved.` : ''}
+        confirmLabel="Remove" confirmColor="error" loading={removing} onConfirm={handleRemoveFromVessel} onClose={() => setConfirmRemove(false)} />
 
       <ConfirmDialog open={confirmDelete} title="Delete Wine Lot"
         message={lot ? `Delete lot "${lot.lotCode}"? This cannot be undone.` : ''}
