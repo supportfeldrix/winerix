@@ -95,16 +95,22 @@ export async function getLotLineage(wineLotId) {
   const orgId = getActiveOrgId();
   if (!orgId || !wineLotId) return { data: { parents: [], children: [] }, error: null };
 
+  // NOTE: lot_lineage has TWO FKs to wine_lots (parent_lot_id, child_lot_id),
+  // so PostgREST embeds MUST be disambiguated by the actual FK constraint names
+  // defined in migration 022 — fk_ll_parent / fk_ll_child — NOT the default
+  // PostgREST '<table>_<column>_fkey' convention (which does not exist here and
+  // caused a PGRST200 "could not find relationship" -> the false "still loading"
+  // banner even though the rows exist).
   const parentsQ = supabase
     .from('lot_lineage')
-    .select('id, parent_lot_id, child_lot_id, relation_type, volume_litres, created_at, parent:wine_lots!lot_lineage_parent_lot_id_fkey(id, lot_code)')
+    .select('id, parent_lot_id, child_lot_id, relation_type, volume_litres, created_at, parent:wine_lots!fk_ll_parent(id, lot_code)')
     .eq('org_id', orgId)
     .eq('child_lot_id', wineLotId)
     .order('created_at', { ascending: true });
 
   const childrenQ = supabase
     .from('lot_lineage')
-    .select('id, parent_lot_id, child_lot_id, relation_type, volume_litres, created_at, child:wine_lots!lot_lineage_child_lot_id_fkey(id, lot_code)')
+    .select('id, parent_lot_id, child_lot_id, relation_type, volume_litres, created_at, child:wine_lots!fk_ll_child(id, lot_code)')
     .eq('org_id', orgId)
     .eq('parent_lot_id', wineLotId)
     .order('created_at', { ascending: true });
