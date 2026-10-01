@@ -71,6 +71,7 @@ function normalise(l) {
     lotCode: l.lot_code,
     volumeLitres: l.volume_litres,
     status: l.status,
+    processingState: l.processing_state,
     notes: l.notes,
     ownerId: l.owner_id,
     createdAt: l.created_at,
@@ -84,7 +85,7 @@ function normalise(l) {
 }
 
 const SELECT =
-  'id, wine_batch_id, lot_code, volume_litres, status, notes, owner_id, created_at, updated_at, ' +
+  'id, wine_batch_id, lot_code, volume_litres, status, processing_state, notes, owner_id, created_at, updated_at, ' +
   'wine_batch:wine_batches(id, batch_code, name, vintage, status)';
 
 /**

@@ -288,3 +288,25 @@ export async function recordAdjustment(lotId, delta, notes = null) {
   if (error) return { data: null, error };
   return { data, error: null };
 }
+
+/**
+ * Start fermentation on a lot in the given vessel (P2I cellar operation).
+ * Invokes the SECURITY DEFINER RPC public.start_fermentation using the
+ * authenticated browser session — the server derives org/actor from auth.uid()
+ * and enforces the cellar role; nothing security-related is set client-side.
+ * The RPC atomically: creates a 'fermentation' production event, places the lot
+ * in the vessel, and sets wine_lots.processing_state = 'fermenting'.
+ * @param {string} lotId
+ * @param {string} vesselId
+ * @param {string} [notes]
+ * @returns {Promise<{ data: object|null, error: object|null }>}
+ */
+export async function startFermentation(lotId, vesselId, notes = null) {
+  const { data, error } = await supabase.rpc('start_fermentation', {
+    p_lot_id: lotId,
+    p_vessel_id: vesselId,
+    p_notes: notes,
+  });
+  if (error) return { data: null, error };
+  return { data, error: null };
+}

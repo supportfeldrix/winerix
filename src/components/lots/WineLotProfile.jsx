@@ -34,9 +34,11 @@ import {
 } from '../../services/productionEventService';
 import { getWineLots } from '../../services/wineLotService';
 import LotVolumeOperationDialog from './LotVolumeOperationDialog';
+import StartFermentationDialog from './StartFermentationDialog';
 import {
   getLotLineage, getLotVolumeHistory, movementTypeLabel,
-  splitLot, mergeLots, blendLots, recordLoss, recordAdjustment, friendlyLineageError,
+  splitLot, mergeLots, blendLots, recordLoss, recordAdjustment,
+  startFermentation, friendlyLineageError,
 } from '../../services/lotLineageService';
 import HistoryOutlinedIcon from '@mui/icons-material/HistoryOutlined';
 import CallSplitOutlinedIcon from '@mui/icons-material/CallSplitOutlined';
@@ -106,6 +108,12 @@ function WineLotProfile() {
   const [opMode, setOpMode] = useState(null); // 'split'|'merge'|'blend'|'loss'|'adjustment'|null
   const [opSaving, setOpSaving] = useState(false);
   const [otherLots, setOtherLots] = useState([]);
+
+  // ── Start Fermentation (P2I-3 smoke test) ───────────────────────────────
+  const [fermentOpen, setFermentOpen] = useState(false);
+  const [fermentSaving, setFermentSaving] = useState(false);
+  const [fermentVessels, setFermentVessels] = useState([]);
+  const [fermentOptionsLoading, setFermentOptionsLoading] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true); setError('');
@@ -189,6 +197,32 @@ function WineLotProfile() {
     setToast(label);
     await reloadVolumeState();
   };
+
+  const openFerment = async () => {
+    setVolumeError('');
+    setFermentOpen(true);
+    setFermentOptionsLoading(true);
+    const { data, error: err } = await getAvailableVesselOptions();
+    setFermentOptionsLoading(false);
+    if (err) { setVolumeError(friendlyVesselError(err)); setFermentVessels([]); return; }
+    setFermentVessels(data || []);
+  };
+
+  const handleStartFermentation = async ({ vesselId, notes }) => {
+    setFermentSaving(true);
+    const { error: err } = await startFermentation(id, vesselId, notes);
+    setFermentSaving(false);
+    if (err) { setVolumeError(friendlyLineageError(err)); return; }
+    setFermentOpen(false);
+    setToast('Fermentation started.');
+    // Refresh lot (processing_state), current placement, and volume ledger.
+    await Promise.all([load(), loadPlacement(), loadMovements()]);
+  };
+
+  // Can start fermentation only when the lot is active and not already fermenting.
+  const canStartFermentation = Boolean(
+    lot && lot.status === 'active' && lot.processingState !== 'fermenting'
+  );
 
   const openEventForm = async () => {
     setEventFormOpen(true);
@@ -286,6 +320,9 @@ function WineLotProfile() {
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
                   <Typography variant="h2" component="h1" sx={{ minWidth: 0 }}>{lot.lotCode}</Typography>
                   <Chip label={lotStatusLabel(lot.status)} color={lotStatusColor(lot.status)} />
+                  {lot.processingState && (
+                    <Chip label={lot.processingState} color="secondary" variant="outlined" sx={{ textTransform: 'capitalize' }} />
+                  )}
                 </Box>
                 {lot.wineBatchId && (
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 1, color: 'text.secondary' }}>
@@ -521,6 +558,9 @@ function WineLotProfile() {
                 <Button size="small" variant="outlined" color="primary" startIcon={<BlenderOutlinedIcon />} onClick={() => openOperation('blend')}>Blend</Button>
                 <Button size="small" variant="outlined" color="secondary" startIcon={<RemoveCircleOutlineOutlinedIcon />} onClick={() => openOperation('loss')}>Loss</Button>
                 <Button size="small" variant="outlined" color="secondary" startIcon={<TuneOutlinedIcon />} onClick={() => openOperation('adjustment')}>Adjust</Button>
+                {canStartFermentation && (
+                  <Button size="small" variant="contained" color="primary" onClick={openFerment}>Start Fermentation</Button>
+                )}
               </Box>
             </Box>
 
@@ -625,6 +665,16 @@ function WineLotProfile() {
         saving={opSaving}
         onSubmit={handleOperationSubmit}
         onClose={() => setOpMode(null)}
+      />
+
+      <StartFermentationDialog
+        open={fermentOpen}
+        lot={lot}
+        vesselOptions={fermentVessels}
+        optionsLoading={fermentOptionsLoading}
+        saving={fermentSaving}
+        onSubmit={handleStartFermentation}
+        onClose={() => setFermentOpen(false)}
       />
 
       <ProductionEventForm
