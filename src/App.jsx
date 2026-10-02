@@ -34,6 +34,7 @@ import Finance from './pages/Finance';
 import FinanceProfile from './components/finance/FinanceProfile';
 import Planner from './pages/Planner';
 import PlannerProfile from './components/planner/PlannerProfile';
+import LabAnalytes from './pages/LabAnalytes';
 import Reports from './pages/Reports';
 import AIIntelligence from './pages/AIIntelligence';
 import Weather from './pages/Weather';
@@ -257,6 +258,7 @@ function App() {
             <Route path="/wine-lots/:id" element={<WineLotProfile />} />
             <Route path="/vessels" element={<Vessels />} />
             <Route path="/vessels/:id" element={<VesselProfile />} />
+            <Route path="/lab/analytes" element={<LabAnalytes />} />
             <Route path="/machinery" element={<Machinery />} />
             <Route path="/machinery/:id" element={<MachineryProfile />} />
             <Route path="/finance" element={<Finance />} />
