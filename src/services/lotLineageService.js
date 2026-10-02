@@ -412,3 +412,25 @@ export async function addToLot(lotId, volumeDeltaLitres, notes = null) {
   if (error) return { data: null, error };
   return { data, error: null };
 }
+
+/**
+ * Start maturation on a lot (P2I cellar operation). Invokes the SECURITY
+ * DEFINER RPC public.start_maturation using the authenticated browser session —
+ * the server derives org/actor from auth.uid(), enforces the cellar role,
+ * validates the transition (NULL/settling -> maturing; rejects fermenting /
+ * already-maturing / terminal lots), and atomically: creates a 'maturation'
+ * production event and transitions processing_state -> 'maturing' through the
+ * existing guard. It does NOT move vessels, change volume, or change lineage.
+ * Nothing security- or state-related is computed client-side.
+ * @param {string} lotId
+ * @param {string} [notes]
+ * @returns {Promise<{ data: object|null, error: object|null }>}
+ */
+export async function startMaturation(lotId, notes = null) {
+  const { data, error } = await supabase.rpc('start_maturation', {
+    p_lot_id: lotId,
+    p_notes: notes,
+  });
+  if (error) return { data: null, error };
+  return { data, error: null };
+}

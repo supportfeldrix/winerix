@@ -39,10 +39,12 @@ import EndFermentationDialog from './EndFermentationDialog';
 import RackLotDialog from './RackLotDialog';
 import FiltrationDialog from './FiltrationDialog';
 import AdditionDialog from './AdditionDialog';
+import MaturationDialog from './MaturationDialog';
 import {
   getLotLineage, getLotVolumeHistory, movementTypeLabel,
   splitLot, mergeLots, blendLots, recordLoss, recordAdjustment,
-  startFermentation, endFermentation, rackLot, filterLot, addToLot, friendlyLineageError,
+  startFermentation, endFermentation, rackLot, filterLot, addToLot,
+  startMaturation, friendlyLineageError,
 } from '../../services/lotLineageService';
 import HistoryOutlinedIcon from '@mui/icons-material/HistoryOutlined';
 import CallSplitOutlinedIcon from '@mui/icons-material/CallSplitOutlined';
@@ -139,6 +141,10 @@ function WineLotProfile() {
   // ── Addition ────────────────────────────────────────────────────────────
   const [additionOpen, setAdditionOpen] = useState(false);
   const [additionSaving, setAdditionSaving] = useState(false);
+
+  // ── Maturation ──────────────────────────────────────────────────────────
+  const [maturationOpen, setMaturationOpen] = useState(false);
+  const [maturationSaving, setMaturationSaving] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true); setError('');
@@ -338,6 +344,26 @@ function WineLotProfile() {
     // Refresh lot (new volume), volume ledger (the addition movement), and
     // production history (addition event). Vessel placement never changes.
     await Promise.all([load(), loadMovements(), loadEvents()]);
+  };
+
+  // Maturation: a controlled processing-state transition (-> maturing) + event.
+  // Available for an active lot in settling or no processing state. The backend
+  // (start_maturation) is authoritative and performs the same validation.
+  const canStartMaturation = Boolean(
+    lot && lot.status === 'active'
+    && (lot.processingState === 'settling' || lot.processingState === null || lot.processingState === undefined)
+  );
+
+  const handleStartMaturation = async ({ notes }) => {
+    setMaturationSaving(true);
+    const { error: err } = await startMaturation(id, notes);
+    setMaturationSaving(false);
+    if (err) { setVolumeError(friendlyLineageError(err)); return; }
+    setMaturationOpen(false);
+    setToast('Maturation started.');
+    // Refresh lot (processing_state -> maturing) and production history
+    // (maturation event). No volume or placement change.
+    await Promise.all([load(), loadEvents()]);
   };
 
   const openEventForm = async () => {
@@ -689,6 +715,9 @@ function WineLotProfile() {
                 {canAdd && (
                   <Button size="small" variant="outlined" color="primary" startIcon={<AddOutlinedIcon />} onClick={() => { setVolumeError(''); setAdditionOpen(true); }}>Addition</Button>
                 )}
+                {canStartMaturation && (
+                  <Button size="small" variant="contained" color="primary" onClick={() => { setVolumeError(''); setMaturationOpen(true); }}>Start Maturation</Button>
+                )}
               </Box>
             </Box>
 
@@ -839,6 +868,14 @@ function WineLotProfile() {
         saving={additionSaving}
         onSubmit={handleAddition}
         onClose={() => setAdditionOpen(false)}
+      />
+
+      <MaturationDialog
+        open={maturationOpen}
+        lot={lot}
+        saving={maturationSaving}
+        onSubmit={handleStartMaturation}
+        onClose={() => setMaturationOpen(false)}
       />
 
       <ProductionEventForm
