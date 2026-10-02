@@ -360,3 +360,30 @@ export async function rackLot(lotId, toVesselId, lossLitres = null, notes = null
   if (error) return { data: null, error };
   return { data, error: null };
 }
+
+/**
+ * Filter a lot (P2I cellar operation). Invokes the SECURITY DEFINER RPC
+ * public.record_filtration using the authenticated browser session — the server
+ * derives org/actor from auth.uid(), enforces the cellar role, and atomically:
+ * creates a 'filtration' production event, OPTIONALLY moves the lot to a target
+ * vessel (correlating the event's vessel_placement_id when a vessel is given),
+ * and (if lossLitres > 0) records a measured loss via the P2H ledger. When no
+ * vessel is supplied the lot stays in place (filter in place). processing_state
+ * and lineage are NOT changed. Nothing security- or volume-related is computed
+ * client-side.
+ * @param {string} lotId
+ * @param {string|null} [toVesselId] - optional target vessel; null = filter in place
+ * @param {number|null} [lossLitres] - optional measured loss in litres (>= 0)
+ * @param {string} [notes]
+ * @returns {Promise<{ data: object|null, error: object|null }>}
+ */
+export async function filterLot(lotId, toVesselId = null, lossLitres = null, notes = null) {
+  const { data, error } = await supabase.rpc('record_filtration', {
+    p_lot_id: lotId,
+    p_to_vessel_id: toVesselId,
+    p_loss_litres: lossLitres,
+    p_notes: notes,
+  });
+  if (error) return { data: null, error };
+  return { data, error: null };
+}

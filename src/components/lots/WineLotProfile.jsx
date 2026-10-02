@@ -37,10 +37,11 @@ import LotVolumeOperationDialog from './LotVolumeOperationDialog';
 import StartFermentationDialog from './StartFermentationDialog';
 import EndFermentationDialog from './EndFermentationDialog';
 import RackLotDialog from './RackLotDialog';
+import FiltrationDialog from './FiltrationDialog';
 import {
   getLotLineage, getLotVolumeHistory, movementTypeLabel,
   splitLot, mergeLots, blendLots, recordLoss, recordAdjustment,
-  startFermentation, endFermentation, rackLot, friendlyLineageError,
+  startFermentation, endFermentation, rackLot, filterLot, friendlyLineageError,
 } from '../../services/lotLineageService';
 import HistoryOutlinedIcon from '@mui/icons-material/HistoryOutlined';
 import CallSplitOutlinedIcon from '@mui/icons-material/CallSplitOutlined';
@@ -48,6 +49,7 @@ import MergeOutlinedIcon from '@mui/icons-material/MergeOutlined';
 import BlenderOutlinedIcon from '@mui/icons-material/BlenderOutlined';
 import RemoveCircleOutlineOutlinedIcon from '@mui/icons-material/RemoveCircleOutlineOutlined';
 import TuneOutlinedIcon from '@mui/icons-material/TuneOutlined';
+import FilterAltOutlinedIcon from '@mui/icons-material/FilterAltOutlined';
 import AccountTreeOutlinedIcon from '@mui/icons-material/AccountTreeOutlined';
 
 // Grape-intake status → chip colour (matches the harvest/batch-side convention).
@@ -126,6 +128,12 @@ function WineLotProfile() {
   const [rackSaving, setRackSaving] = useState(false);
   const [rackVessels, setRackVessels] = useState([]);
   const [rackOptionsLoading, setRackOptionsLoading] = useState(false);
+
+  // ── Filtration ──────────────────────────────────────────────────────────
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [filterSaving, setFilterSaving] = useState(false);
+  const [filterVessels, setFilterVessels] = useState([]);
+  const [filterOptionsLoading, setFilterOptionsLoading] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true); setError('');
@@ -279,6 +287,34 @@ function WineLotProfile() {
     setToast('Lot racked.');
     // Refresh lot, current placement (new vessel), volume ledger (any loss),
     // and production history (racking event). processing_state is unchanged.
+    await Promise.all([load(), loadPlacement(), loadMovements(), loadEvents()]);
+  };
+
+  // Filtration: a production operation (filtration event + optional vessel move
+  // + optional loss). Available for any active lot regardless of processing_state.
+  const canFilter = Boolean(lot && lot.status === 'active');
+
+  const openFilter = async () => {
+    setVolumeError('');
+    setFilterOpen(true);
+    setFilterOptionsLoading(true);
+    const { data, error: err } = await getAvailableVesselOptions();
+    setFilterOptionsLoading(false);
+    if (err) { setVolumeError(friendlyVesselError(err)); setFilterVessels([]); return; }
+    // Exclude the lot's current vessel (if any); "filter in place" is the None option.
+    const currentVesselId = placement ? placement.vesselId : null;
+    setFilterVessels((data || []).filter((v) => v.id !== currentVesselId));
+  };
+
+  const handleFilter = async ({ toVesselId, lossLitres, notes }) => {
+    setFilterSaving(true);
+    const { error: err } = await filterLot(id, toVesselId, lossLitres, notes);
+    setFilterSaving(false);
+    if (err) { setVolumeError(friendlyLineageError(err)); return; }
+    setFilterOpen(false);
+    setToast('Lot filtered.');
+    // Refresh lot, current placement (may be a new vessel), volume ledger (any
+    // loss), and production history (filtration event). processing_state is unchanged.
     await Promise.all([load(), loadPlacement(), loadMovements(), loadEvents()]);
   };
 
@@ -625,6 +661,9 @@ function WineLotProfile() {
                 {canRack && (
                   <Button size="small" variant="outlined" color="primary" startIcon={<SwapHorizOutlinedIcon />} onClick={openRack}>Rack</Button>
                 )}
+                {canFilter && (
+                  <Button size="small" variant="outlined" color="primary" startIcon={<FilterAltOutlinedIcon />} onClick={openFilter}>Filter</Button>
+                )}
               </Box>
             </Box>
 
@@ -757,6 +796,16 @@ function WineLotProfile() {
         saving={rackSaving}
         onSubmit={handleRack}
         onClose={() => setRackOpen(false)}
+      />
+
+      <FiltrationDialog
+        open={filterOpen}
+        lot={lot}
+        vesselOptions={filterVessels}
+        optionsLoading={filterOptionsLoading}
+        saving={filterSaving}
+        onSubmit={handleFilter}
+        onClose={() => setFilterOpen(false)}
       />
 
       <ProductionEventForm
