@@ -18,6 +18,7 @@ import ScienceOutlinedIcon from '@mui/icons-material/ScienceOutlined';
 import WaterOutlinedIcon from '@mui/icons-material/WaterOutlined';
 import PropaneTankOutlinedIcon from '@mui/icons-material/PropaneTankOutlined';
 import BiotechOutlinedIcon from '@mui/icons-material/BiotechOutlined';
+import ColorizeOutlinedIcon from '@mui/icons-material/ColorizeOutlined';
 import PrecisionManufacturingOutlinedIcon from '@mui/icons-material/PrecisionManufacturingOutlined';
 import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined';
 import EventNoteOutlinedIcon from '@mui/icons-material/EventNoteOutlined';
@@ -40,6 +41,7 @@ export const MAIN_NAV = [
   { label: 'Wine Lots', path: '/wine-lots', icon: WaterOutlinedIcon },
   { label: 'Vessels', path: '/vessels', icon: PropaneTankOutlinedIcon },
   { label: 'Lab Analytes', path: '/lab/analytes', icon: BiotechOutlinedIcon },
+  { label: 'Lab Samples', path: '/lab/samples', icon: ColorizeOutlinedIcon },
   { label: 'Machinery', path: '/machinery', icon: PrecisionManufacturingOutlinedIcon },
   { label: 'Finance', path: '/finance', icon: PaymentsOutlinedIcon },
   { label: 'Planner', path: '/planner', icon: EventNoteOutlinedIcon },
