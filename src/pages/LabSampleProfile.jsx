@@ -10,6 +10,7 @@ import FactCheckOutlinedIcon from '@mui/icons-material/FactCheckOutlined';
 import BiotechOutlinedIcon from '@mui/icons-material/BiotechOutlined';
 import PageContainer from '../components/layout/PageContainer';
 import LabSampleForm from '../components/lab/LabSampleForm';
+import LabMeasurementsSection from '../components/lab/LabMeasurementsSection';
 import { sampleStatusColor } from '../components/lab/LabSampleTable';
 import { formatDate } from '../components/common/formatters';
 import { useOrganisation } from '../context/OrganisationContext';
@@ -244,6 +245,9 @@ function LabSampleProfile() {
           </Button>
         </Stack>
       </Paper>
+
+      {/* Laboratory Measurements — append-only readings for this sample. */}
+      <LabMeasurementsSection sampleId={sample.id} />
 
       <LabSampleForm
         open={editOpen}
