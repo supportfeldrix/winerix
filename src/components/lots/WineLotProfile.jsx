@@ -38,10 +38,11 @@ import StartFermentationDialog from './StartFermentationDialog';
 import EndFermentationDialog from './EndFermentationDialog';
 import RackLotDialog from './RackLotDialog';
 import FiltrationDialog from './FiltrationDialog';
+import AdditionDialog from './AdditionDialog';
 import {
   getLotLineage, getLotVolumeHistory, movementTypeLabel,
   splitLot, mergeLots, blendLots, recordLoss, recordAdjustment,
-  startFermentation, endFermentation, rackLot, filterLot, friendlyLineageError,
+  startFermentation, endFermentation, rackLot, filterLot, addToLot, friendlyLineageError,
 } from '../../services/lotLineageService';
 import HistoryOutlinedIcon from '@mui/icons-material/HistoryOutlined';
 import CallSplitOutlinedIcon from '@mui/icons-material/CallSplitOutlined';
@@ -134,6 +135,10 @@ function WineLotProfile() {
   const [filterSaving, setFilterSaving] = useState(false);
   const [filterVessels, setFilterVessels] = useState([]);
   const [filterOptionsLoading, setFilterOptionsLoading] = useState(false);
+
+  // ── Addition ────────────────────────────────────────────────────────────
+  const [additionOpen, setAdditionOpen] = useState(false);
+  const [additionSaving, setAdditionSaving] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true); setError('');
@@ -316,6 +321,23 @@ function WineLotProfile() {
     // Refresh lot, current placement (may be a new vessel), volume ledger (any
     // loss), and production history (filtration event). processing_state is unchanged.
     await Promise.all([load(), loadPlacement(), loadMovements(), loadEvents()]);
+  };
+
+  // Addition: a documented cellar operation that adds volume to the lot (via the
+  // P2H ledger). No vessel/lineage/processing_state change. Available for any
+  // active lot regardless of processing_state. Distinct from Adjustment.
+  const canAdd = Boolean(lot && lot.status === 'active');
+
+  const handleAddition = async ({ volumeLitres, notes }) => {
+    setAdditionSaving(true);
+    const { error: err } = await addToLot(id, volumeLitres, notes);
+    setAdditionSaving(false);
+    if (err) { setVolumeError(friendlyLineageError(err)); return; }
+    setAdditionOpen(false);
+    setToast('Addition recorded.');
+    // Refresh lot (new volume), volume ledger (the addition movement), and
+    // production history (addition event). Vessel placement never changes.
+    await Promise.all([load(), loadMovements(), loadEvents()]);
   };
 
   const openEventForm = async () => {
@@ -664,6 +686,9 @@ function WineLotProfile() {
                 {canFilter && (
                   <Button size="small" variant="outlined" color="primary" startIcon={<FilterAltOutlinedIcon />} onClick={openFilter}>Filter</Button>
                 )}
+                {canAdd && (
+                  <Button size="small" variant="outlined" color="primary" startIcon={<AddOutlinedIcon />} onClick={() => { setVolumeError(''); setAdditionOpen(true); }}>Addition</Button>
+                )}
               </Box>
             </Box>
 
@@ -806,6 +831,14 @@ function WineLotProfile() {
         saving={filterSaving}
         onSubmit={handleFilter}
         onClose={() => setFilterOpen(false)}
+      />
+
+      <AdditionDialog
+        open={additionOpen}
+        lot={lot}
+        saving={additionSaving}
+        onSubmit={handleAddition}
+        onClose={() => setAdditionOpen(false)}
       />
 
       <ProductionEventForm

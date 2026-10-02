@@ -387,3 +387,28 @@ export async function filterLot(lotId, toVesselId = null, lossLitres = null, not
   if (error) return { data: null, error };
   return { data, error: null };
 }
+
+/**
+ * Record an addition on a lot (P2I cellar operation). Invokes the SECURITY
+ * DEFINER RPC public.record_addition using the authenticated browser session —
+ * the server derives org/actor from auth.uid(), enforces the cellar role, and
+ * atomically: creates an 'addition' production event and (when a non-zero
+ * volume delta is given) applies the volume change through the P2H ledger,
+ * correlated to the event. Addition does NOT move vessels, change lineage, or
+ * change processing_state. It is a documented cellar operation distinct from a
+ * corrective Adjustment (different production_events.event_type). Nothing
+ * security- or volume-related is computed client-side.
+ * @param {string} lotId
+ * @param {number} volumeDeltaLitres - positive litres added (UI requires > 0)
+ * @param {string} [notes]
+ * @returns {Promise<{ data: object|null, error: object|null }>}
+ */
+export async function addToLot(lotId, volumeDeltaLitres, notes = null) {
+  const { data, error } = await supabase.rpc('record_addition', {
+    p_lot_id: lotId,
+    p_volume_delta_litres: volumeDeltaLitres,
+    p_notes: notes,
+  });
+  if (error) return { data: null, error };
+  return { data, error: null };
+}
