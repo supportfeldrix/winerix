@@ -36,10 +36,11 @@ import { getWineLots } from '../../services/wineLotService';
 import LotVolumeOperationDialog from './LotVolumeOperationDialog';
 import StartFermentationDialog from './StartFermentationDialog';
 import EndFermentationDialog from './EndFermentationDialog';
+import RackLotDialog from './RackLotDialog';
 import {
   getLotLineage, getLotVolumeHistory, movementTypeLabel,
   splitLot, mergeLots, blendLots, recordLoss, recordAdjustment,
-  startFermentation, endFermentation, friendlyLineageError,
+  startFermentation, endFermentation, rackLot, friendlyLineageError,
 } from '../../services/lotLineageService';
 import HistoryOutlinedIcon from '@mui/icons-material/HistoryOutlined';
 import CallSplitOutlinedIcon from '@mui/icons-material/CallSplitOutlined';
@@ -119,6 +120,12 @@ function WineLotProfile() {
   // ── End Fermentation ────────────────────────────────────────────────────
   const [endFermentOpen, setEndFermentOpen] = useState(false);
   const [endFermentSaving, setEndFermentSaving] = useState(false);
+
+  // ── Racking ─────────────────────────────────────────────────────────────
+  const [rackOpen, setRackOpen] = useState(false);
+  const [rackSaving, setRackSaving] = useState(false);
+  const [rackVessels, setRackVessels] = useState([]);
+  const [rackOptionsLoading, setRackOptionsLoading] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true); setError('');
@@ -244,6 +251,34 @@ function WineLotProfile() {
     setToast('Fermentation ended.');
     // Refresh lot (processing_state -> settling), placement (unchanged), ledger
     // (any loss), and production history (fermentation_end event).
+    await Promise.all([load(), loadPlacement(), loadMovements(), loadEvents()]);
+  };
+
+  // Racking: a vessel transfer that records a production event + optional loss.
+  // Available for any active lot regardless of processing_state (RPC authoritative).
+  const canRack = Boolean(lot && lot.status === 'active');
+
+  const openRack = async () => {
+    setVolumeError('');
+    setRackOpen(true);
+    setRackOptionsLoading(true);
+    const { data, error: err } = await getAvailableVesselOptions();
+    setRackOptionsLoading(false);
+    if (err) { setVolumeError(friendlyVesselError(err)); setRackVessels([]); return; }
+    // Exclude the lot's current vessel (if any) from the rack targets.
+    const currentVesselId = placement ? placement.vesselId : null;
+    setRackVessels((data || []).filter((v) => v.id !== currentVesselId));
+  };
+
+  const handleRack = async ({ toVesselId, lossLitres, notes }) => {
+    setRackSaving(true);
+    const { error: err } = await rackLot(id, toVesselId, lossLitres, notes);
+    setRackSaving(false);
+    if (err) { setVolumeError(friendlyLineageError(err)); return; }
+    setRackOpen(false);
+    setToast('Lot racked.');
+    // Refresh lot, current placement (new vessel), volume ledger (any loss),
+    // and production history (racking event). processing_state is unchanged.
     await Promise.all([load(), loadPlacement(), loadMovements(), loadEvents()]);
   };
 
@@ -587,6 +622,9 @@ function WineLotProfile() {
                 {canEndFermentation && (
                   <Button size="small" variant="contained" color="primary" onClick={() => { setVolumeError(''); setEndFermentOpen(true); }}>End Fermentation</Button>
                 )}
+                {canRack && (
+                  <Button size="small" variant="outlined" color="primary" startIcon={<SwapHorizOutlinedIcon />} onClick={openRack}>Rack</Button>
+                )}
               </Box>
             </Box>
 
@@ -709,6 +747,16 @@ function WineLotProfile() {
         saving={endFermentSaving}
         onSubmit={handleEndFermentation}
         onClose={() => setEndFermentOpen(false)}
+      />
+
+      <RackLotDialog
+        open={rackOpen}
+        lot={lot}
+        vesselOptions={rackVessels}
+        optionsLoading={rackOptionsLoading}
+        saving={rackSaving}
+        onSubmit={handleRack}
+        onClose={() => setRackOpen(false)}
       />
 
       <ProductionEventForm

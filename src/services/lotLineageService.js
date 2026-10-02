@@ -334,3 +334,29 @@ export async function endFermentation(lotId, lossLitres = null, notes = null) {
   if (error) return { data: null, error };
   return { data, error: null };
 }
+
+/**
+ * Rack a lot into another vessel (P2I cellar operation). Invokes the SECURITY
+ * DEFINER RPC public.record_rack using the authenticated browser session — the
+ * server derives org/actor from auth.uid(), enforces the cellar role, and
+ * atomically: creates a 'racking' production event, closes the lot's current
+ * open placement and opens one in the target vessel (correlating the event's
+ * vessel_placement_id), and (if lossLitres > 0) records a measured loss via the
+ * P2H ledger. processing_state and lineage are NOT changed. Nothing security- or
+ * volume-related is computed client-side.
+ * @param {string} lotId
+ * @param {string} toVesselId - target vessel (must differ from the current one)
+ * @param {number|null} [lossLitres] - optional measured loss in litres (>= 0)
+ * @param {string} [notes]
+ * @returns {Promise<{ data: object|null, error: object|null }>}
+ */
+export async function rackLot(lotId, toVesselId, lossLitres = null, notes = null) {
+  const { data, error } = await supabase.rpc('record_rack', {
+    p_lot_id: lotId,
+    p_to_vessel_id: toVesselId,
+    p_loss_litres: lossLitres,
+    p_notes: notes,
+  });
+  if (error) return { data: null, error };
+  return { data, error: null };
+}
