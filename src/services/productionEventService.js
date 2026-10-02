@@ -28,10 +28,20 @@ export const PRODUCTION_EVENT_TYPES = [
   { value: 'other', label: 'Other' },
 ];
 
-// Human label for an event-type value.
+// Labels for operation-only event types that are NOT user-selectable in the
+// generic event form (they are created exclusively by cellar operation RPCs),
+// but still need a friendly display label in production history.
+const EXTRA_EVENT_TYPE_LABELS = {
+  fermentation_end: 'Fermentation End',
+};
+
+// Human label for an event-type value (display only; does not affect the
+// selectable PRODUCTION_EVENT_TYPES form options).
 export function productionEventTypeLabel(type) {
   const found = PRODUCTION_EVENT_TYPES.find((t) => t.value === type);
-  return found ? found.label : type || '—';
+  if (found) return found.label;
+  if (type && EXTRA_EVENT_TYPE_LABELS[type]) return EXTRA_EVENT_TYPE_LABELS[type];
+  return type || '—';
 }
 
 /**

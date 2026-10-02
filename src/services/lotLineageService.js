@@ -310,3 +310,27 @@ export async function startFermentation(lotId, vesselId, notes = null) {
   if (error) return { data: null, error };
   return { data, error: null };
 }
+
+/**
+ * End fermentation on a lot (P2I cellar operation). Invokes the SECURITY
+ * DEFINER RPC public.end_fermentation using the authenticated browser session —
+ * the server derives org/actor from auth.uid(), enforces the cellar role,
+ * requires the lot to be currently fermenting, and atomically: creates a
+ * 'fermentation_end' production event, transitions processing_state
+ * fermenting -> settling, and (if lossLitres > 0) records a measured loss via
+ * the P2H ledger. The vessel placement is NOT changed. Nothing security- or
+ * volume-related is computed client-side.
+ * @param {string} lotId
+ * @param {number|null} [lossLitres] - optional measured loss in litres (>= 0)
+ * @param {string} [notes]
+ * @returns {Promise<{ data: object|null, error: object|null }>}
+ */
+export async function endFermentation(lotId, lossLitres = null, notes = null) {
+  const { data, error } = await supabase.rpc('end_fermentation', {
+    p_lot_id: lotId,
+    p_loss_litres: lossLitres,
+    p_notes: notes,
+  });
+  if (error) return { data: null, error };
+  return { data, error: null };
+}

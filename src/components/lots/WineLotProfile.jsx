@@ -35,10 +35,11 @@ import {
 import { getWineLots } from '../../services/wineLotService';
 import LotVolumeOperationDialog from './LotVolumeOperationDialog';
 import StartFermentationDialog from './StartFermentationDialog';
+import EndFermentationDialog from './EndFermentationDialog';
 import {
   getLotLineage, getLotVolumeHistory, movementTypeLabel,
   splitLot, mergeLots, blendLots, recordLoss, recordAdjustment,
-  startFermentation, friendlyLineageError,
+  startFermentation, endFermentation, friendlyLineageError,
 } from '../../services/lotLineageService';
 import HistoryOutlinedIcon from '@mui/icons-material/HistoryOutlined';
 import CallSplitOutlinedIcon from '@mui/icons-material/CallSplitOutlined';
@@ -109,11 +110,15 @@ function WineLotProfile() {
   const [opSaving, setOpSaving] = useState(false);
   const [otherLots, setOtherLots] = useState([]);
 
-  // ── Start Fermentation (P2I-3 smoke test) ───────────────────────────────
+  // ── Start Fermentation ──────────────────────────────────────────────────
   const [fermentOpen, setFermentOpen] = useState(false);
   const [fermentSaving, setFermentSaving] = useState(false);
   const [fermentVessels, setFermentVessels] = useState([]);
   const [fermentOptionsLoading, setFermentOptionsLoading] = useState(false);
+
+  // ── End Fermentation ────────────────────────────────────────────────────
+  const [endFermentOpen, setEndFermentOpen] = useState(false);
+  const [endFermentSaving, setEndFermentSaving] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true); setError('');
@@ -219,10 +224,28 @@ function WineLotProfile() {
     await Promise.all([load(), loadPlacement(), loadMovements()]);
   };
 
-  // Can start fermentation only when the lot is active and not already fermenting.
+  // Can start fermentation only for an active lot that has no processing state
+  // yet (NULL). Once fermenting / settling / maturing, Start is not offered.
   const canStartFermentation = Boolean(
-    lot && lot.status === 'active' && lot.processingState !== 'fermenting'
+    lot && lot.status === 'active' && (lot.processingState === null || lot.processingState === undefined)
   );
+
+  // Can end fermentation only when the lot is active and currently fermenting.
+  const canEndFermentation = Boolean(
+    lot && lot.status === 'active' && lot.processingState === 'fermenting'
+  );
+
+  const handleEndFermentation = async ({ lossLitres, notes }) => {
+    setEndFermentSaving(true);
+    const { error: err } = await endFermentation(id, lossLitres, notes);
+    setEndFermentSaving(false);
+    if (err) { setVolumeError(friendlyLineageError(err)); return; }
+    setEndFermentOpen(false);
+    setToast('Fermentation ended.');
+    // Refresh lot (processing_state -> settling), placement (unchanged), ledger
+    // (any loss), and production history (fermentation_end event).
+    await Promise.all([load(), loadPlacement(), loadMovements(), loadEvents()]);
+  };
 
   const openEventForm = async () => {
     setEventFormOpen(true);
@@ -561,6 +584,9 @@ function WineLotProfile() {
                 {canStartFermentation && (
                   <Button size="small" variant="contained" color="primary" onClick={openFerment}>Start Fermentation</Button>
                 )}
+                {canEndFermentation && (
+                  <Button size="small" variant="contained" color="primary" onClick={() => { setVolumeError(''); setEndFermentOpen(true); }}>End Fermentation</Button>
+                )}
               </Box>
             </Box>
 
@@ -675,6 +701,14 @@ function WineLotProfile() {
         saving={fermentSaving}
         onSubmit={handleStartFermentation}
         onClose={() => setFermentOpen(false)}
+      />
+
+      <EndFermentationDialog
+        open={endFermentOpen}
+        lot={lot}
+        saving={endFermentSaving}
+        onSubmit={handleEndFermentation}
+        onClose={() => setEndFermentOpen(false)}
       />
 
       <ProductionEventForm
