@@ -117,6 +117,7 @@ function normaliseRunLot(l) {
     // Derived context via existing relationships (nothing duplicated).
     lotCode: lot ? lot.lot_code : null,
     lotStatus: lot ? lot.status : null,
+    lotVolumeLitres: lot ? lot.volume_litres : null, // current lot volume (display only — NOT reduced by this planned allocation)
     batchCode: batch ? batch.batch_code : null,
     batchVintage: batch ? batch.vintage : null,
   };
@@ -146,7 +147,7 @@ const RUN_SELECT =
 
 const RUN_LOT_SELECT =
   'id, bottling_run_id, wine_lot_id, consumed_volume_litres, bottled_litres, loss_litres, notes, owner_id, created_at, updated_at, ' +
-  'wine_lot:wine_lots(id, lot_code, status, wine_batch:wine_batches(id, batch_code, vintage))';
+  'wine_lot:wine_lots(id, lot_code, status, volume_litres, wine_batch:wine_batches(id, batch_code, vintage))';
 
 const OUTPUT_SELECT =
   'id, bottling_run_id, bottle_volume_ml, bottle_count, bottled_litres, packaging_format, product_name, vintage, notes, owner_id, created_at, updated_at';

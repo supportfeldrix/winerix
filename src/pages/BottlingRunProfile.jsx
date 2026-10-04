@@ -6,12 +6,12 @@ import {
 import ArrowBackOutlinedIcon from '@mui/icons-material/ArrowBackOutlined';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import LiquorOutlinedIcon from '@mui/icons-material/LiquorOutlined';
-import ScienceOutlinedIcon from '@mui/icons-material/ScienceOutlined';
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
 import TaskAltOutlinedIcon from '@mui/icons-material/TaskAltOutlined';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import PageContainer from '../components/layout/PageContainer';
 import BottlingRunForm from '../components/bottling/BottlingRunForm';
+import BottlingRunLotsSection from '../components/bottling/BottlingRunLotsSection';
 import { bottlingRunStatusColor, isBottlingRunEditable } from '../components/bottling/BottlingRunTable';
 import { formatDate } from '../components/common/formatters';
 import { useOrganisation } from '../context/OrganisationContext';
@@ -187,16 +187,12 @@ function BottlingRunProfile() {
         </Grid>
       </Paper>
 
-      {/* ── Future B5 workflow sections (placeholders only for B5-1) ────────── */}
+      {/* ── B5 workflow sections ───────────────────────────────────────────── */}
 
-      {/* A. Source Wine Lots */}
-      <PlaceholderSection
-        icon={<ScienceOutlinedIcon />}
-        title="Source Wine Lots"
-        description="No source wine lots have been allocated to this run yet. Allocating wine lots as bottling sources will be available in a later step."
-      />
+      {/* A. Source Wine Lots (P2J-B5-2 — real workflow) */}
+      <BottlingRunLotsSection run={run} />
 
-      {/* B. Bottling Outputs */}
+      {/* B. Bottling Outputs (placeholder — future B5 task) */}
       <PlaceholderSection
         icon={<Inventory2OutlinedIcon />}
         title="Bottling Outputs"
