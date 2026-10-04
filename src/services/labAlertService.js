@@ -81,7 +81,7 @@ export function friendlyLabAlertError(error) {
   if (msg.includes('not a member of')) return 'This alert belongs to a different organisation.';
   if (msg.includes('not found')) return 'The alert could not be found.';
   if (msg.includes('can be acknowledged') || msg.includes('can be resolved') || msg.includes('can be dismissed')) {
-    return 'That action is not allowed from the alert''s current status.';
+    return 'That action is not allowed from the alert\'s current status.';
   }
   if (msg.includes('invalid alert type/class') || msg.includes('unsupported alert type')) {
     return 'That alert type is not supported.';

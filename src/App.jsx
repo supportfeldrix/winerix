@@ -37,6 +37,9 @@ import PlannerProfile from './components/planner/PlannerProfile';
 import LabAnalytes from './pages/LabAnalytes';
 import LabSamples from './pages/LabSamples';
 import LabSampleProfile from './pages/LabSampleProfile';
+import LabSpecifications from './pages/LabSpecifications';
+import LabAlerts from './pages/LabAlerts';
+import LabAlertProfile from './pages/LabAlertProfile';
 import Reports from './pages/Reports';
 import AIIntelligence from './pages/AIIntelligence';
 import Weather from './pages/Weather';
@@ -263,6 +266,9 @@ function App() {
             <Route path="/lab/analytes" element={<LabAnalytes />} />
             <Route path="/lab/samples" element={<LabSamples />} />
             <Route path="/lab/samples/:id" element={<LabSampleProfile />} />
+            <Route path="/lab/specifications" element={<LabSpecifications />} />
+            <Route path="/lab/alerts" element={<LabAlerts />} />
+            <Route path="/lab/alerts/:id" element={<LabAlertProfile />} />
             <Route path="/machinery" element={<Machinery />} />
             <Route path="/machinery/:id" element={<MachineryProfile />} />
             <Route path="/finance" element={<Finance />} />

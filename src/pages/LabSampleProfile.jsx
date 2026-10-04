@@ -11,6 +11,7 @@ import BiotechOutlinedIcon from '@mui/icons-material/BiotechOutlined';
 import PageContainer from '../components/layout/PageContainer';
 import LabSampleForm from '../components/lab/LabSampleForm';
 import LabMeasurementsSection from '../components/lab/LabMeasurementsSection';
+import LabSampleAlertsSection from '../components/lab/LabSampleAlertsSection';
 import { sampleStatusColor } from '../components/lab/LabSampleTable';
 import { formatDate } from '../components/common/formatters';
 import { useOrganisation } from '../context/OrganisationContext';
@@ -248,6 +249,10 @@ function LabSampleProfile() {
 
       {/* Laboratory Measurements — append-only readings for this sample. */}
       <LabMeasurementsSection sampleId={sample.id} />
+
+      {/* Laboratory Alerts — operational exceptions for this sample (read-only;
+          lifecycle actions live on the alert profile). */}
+      <LabSampleAlertsSection sampleId={sample.id} />
 
       <LabSampleForm
         open={editOpen}

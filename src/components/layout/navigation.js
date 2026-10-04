@@ -19,6 +19,8 @@ import WaterOutlinedIcon from '@mui/icons-material/WaterOutlined';
 import PropaneTankOutlinedIcon from '@mui/icons-material/PropaneTankOutlined';
 import BiotechOutlinedIcon from '@mui/icons-material/BiotechOutlined';
 import ColorizeOutlinedIcon from '@mui/icons-material/ColorizeOutlined';
+import RuleOutlinedIcon from '@mui/icons-material/RuleOutlined';
+import WarningAmberOutlinedIcon from '@mui/icons-material/WarningAmberOutlined';
 import PrecisionManufacturingOutlinedIcon from '@mui/icons-material/PrecisionManufacturingOutlined';
 import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined';
 import EventNoteOutlinedIcon from '@mui/icons-material/EventNoteOutlined';
@@ -42,6 +44,8 @@ export const MAIN_NAV = [
   { label: 'Vessels', path: '/vessels', icon: PropaneTankOutlinedIcon },
   { label: 'Lab Analytes', path: '/lab/analytes', icon: BiotechOutlinedIcon },
   { label: 'Lab Samples', path: '/lab/samples', icon: ColorizeOutlinedIcon },
+  { label: 'Lab Specifications', path: '/lab/specifications', icon: RuleOutlinedIcon },
+  { label: 'Lab Alerts', path: '/lab/alerts', icon: WarningAmberOutlinedIcon },
   { label: 'Machinery', path: '/machinery', icon: PrecisionManufacturingOutlinedIcon },
   { label: 'Finance', path: '/finance', icon: PaymentsOutlinedIcon },
   { label: 'Planner', path: '/planner', icon: EventNoteOutlinedIcon },
