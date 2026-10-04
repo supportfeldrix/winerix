@@ -17,6 +17,7 @@ import AgricultureOutlinedIcon from '@mui/icons-material/AgricultureOutlined';
 import ScienceOutlinedIcon from '@mui/icons-material/ScienceOutlined';
 import WaterOutlinedIcon from '@mui/icons-material/WaterOutlined';
 import PropaneTankOutlinedIcon from '@mui/icons-material/PropaneTankOutlined';
+import LiquorOutlinedIcon from '@mui/icons-material/LiquorOutlined';
 import BiotechOutlinedIcon from '@mui/icons-material/BiotechOutlined';
 import ColorizeOutlinedIcon from '@mui/icons-material/ColorizeOutlined';
 import RuleOutlinedIcon from '@mui/icons-material/RuleOutlined';
@@ -42,6 +43,7 @@ export const MAIN_NAV = [
   { label: 'Wine Batches', path: '/wine-batches', icon: ScienceOutlinedIcon },
   { label: 'Wine Lots', path: '/wine-lots', icon: WaterOutlinedIcon },
   { label: 'Vessels', path: '/vessels', icon: PropaneTankOutlinedIcon },
+  { label: 'Bottling Runs', path: '/bottling-runs', icon: LiquorOutlinedIcon },
   { label: 'Lab Analytes', path: '/lab/analytes', icon: BiotechOutlinedIcon },
   { label: 'Lab Samples', path: '/lab/samples', icon: ColorizeOutlinedIcon },
   { label: 'Lab Specifications', path: '/lab/specifications', icon: RuleOutlinedIcon },

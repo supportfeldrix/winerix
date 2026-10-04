@@ -28,6 +28,8 @@ import WineLots from './pages/WineLots';
 import WineLotProfile from './components/lots/WineLotProfile';
 import Vessels from './pages/Vessels';
 import VesselProfile from './components/vessels/VesselProfile';
+import BottlingRuns from './pages/BottlingRuns';
+import BottlingRunProfile from './pages/BottlingRunProfile';
 import Machinery from './pages/Machinery';
 import MachineryProfile from './components/machinery/MachineryProfile';
 import Finance from './pages/Finance';
@@ -263,6 +265,8 @@ function App() {
             <Route path="/wine-lots/:id" element={<WineLotProfile />} />
             <Route path="/vessels" element={<Vessels />} />
             <Route path="/vessels/:id" element={<VesselProfile />} />
+            <Route path="/bottling-runs" element={<BottlingRuns />} />
+            <Route path="/bottling-runs/:id" element={<BottlingRunProfile />} />
             <Route path="/lab/analytes" element={<LabAnalytes />} />
             <Route path="/lab/samples" element={<LabSamples />} />
             <Route path="/lab/samples/:id" element={<LabSampleProfile />} />
