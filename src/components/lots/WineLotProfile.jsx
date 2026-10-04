@@ -54,6 +54,7 @@ import RemoveCircleOutlineOutlinedIcon from '@mui/icons-material/RemoveCircleOut
 import TuneOutlinedIcon from '@mui/icons-material/TuneOutlined';
 import FilterAltOutlinedIcon from '@mui/icons-material/FilterAltOutlined';
 import AccountTreeOutlinedIcon from '@mui/icons-material/AccountTreeOutlined';
+import WineLotAlertsSection from '../lab/WineLotAlertsSection';
 
 // Grape-intake status → chip colour (matches the harvest/batch-side convention).
 function intakeStatusChip(status) {
@@ -809,6 +810,9 @@ function WineLotProfile() {
               )}
             </Box>
           </Paper>
+
+          {/* Laboratory Alerts — lot-scoped, read-only; links to the alert profile. */}
+          <WineLotAlertsSection wineLotId={lot.id} />
         </>
       ) : null}
 

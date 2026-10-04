@@ -133,6 +133,9 @@ function normalise(a) {
     measurementMeasuredAt: measurement ? measurement.measured_at : null,
     labSampleId: sample ? sample.id : null,
     sampleCode: sample ? sample.sample_code : null,
+    // wineLotId is only present when the sample join selected wine_lot_id
+    // (e.g. the lot-scoped query); null otherwise.
+    wineLotId: sample ? (sample.wine_lot_id ?? null) : null,
     analyteCode: analyte ? analyte.code : null,
     analyteDisplayName: analyte ? analyte.display_name : null,
   };
@@ -275,6 +278,48 @@ export async function getAlertsForSample(labSampleId) {
 export async function getAlertsForMeasurement(measurementId) {
   if (!measurementId) return { data: [], error: null };
   return getLaboratoryAlerts({ measurementId });
+}
+
+// Lot-scoped SELECT: like SELECT_WITH_CONTEXT but the measurement and sample
+// joins are INNER (!inner) and the sample additionally selects wine_lot_id, so
+// filtering on lab_measurement.lab_sample.wine_lot_id narrows the PARENT alert
+// rows in a single query (no per-sample fan-out).
+const SELECT_FOR_WINE_LOT =
+  'id, lab_measurement_id, alert_type, alert_class, status, triggered_at, ' +
+  'acknowledged_at, acknowledged_by, resolved_at, resolved_by, dismissed_at, dismissed_by, resolution_notes, ' +
+  'measurement_value, measurement_unit, specification_id, specification_name, ' +
+  'specification_min_value, specification_max_value, specification_target_value, specification_unit, ' +
+  'evaluation_status, range_result, owner_id, created_at, updated_at, ' +
+  'lab_measurement:lab_measurements!inner(id, measured_at, ' +
+  'lab_sample:lab_samples!inner(id, sample_code, wine_lot_id), ' +
+  'lab_analyte:lab_analytes(id, code, display_name))';
+
+/**
+ * Fetch all laboratory alerts for a wine lot (active-org scoped), newest first,
+ * in a SINGLE query via the Wine Lot -> Lab Samples -> Lab Measurements ->
+ * Lab Alerts relationship chain (no per-sample queries). org_id scoping + RLS
+ * remain authoritative; a cross-org lot simply returns nothing.
+ * @param {string} wineLotId
+ * @returns {Promise<{ data: Array|null, error: object|null }>}
+ */
+export async function getAlertsForWineLot(wineLotId) {
+  const orgId = getActiveOrgId();
+  if (!orgId) return { data: [], error: null };
+  if (!wineLotId) return { data: [], error: null };
+
+  const { data, error } = await supabase
+    .from('lab_alerts')
+    .select(SELECT_FOR_WINE_LOT)
+    .eq('org_id', orgId)
+    .eq('lab_measurement.lab_sample.wine_lot_id', wineLotId)
+    .order('triggered_at', { ascending: false })
+    .order('created_at', { ascending: false });
+
+  if (error) return { data: null, error };
+  // Safeguard: keep only rows whose resolved sample belongs to the lot (mirrors
+  // the embedded-filter safeguard used by getLaboratoryAlerts).
+  const rows = (data || []).map(normalise).filter((r) => r.wineLotId === wineLotId);
+  return { data: rows, error: null };
 }
 
 // Shared lifecycle caller: invoke a controlled RPC and normalise its row.
