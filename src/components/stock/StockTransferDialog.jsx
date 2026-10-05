@@ -6,6 +6,7 @@ import {
 import CheckCircleOutlineOutlinedIcon from '@mui/icons-material/CheckCircleOutlineOutlined';
 import SwapHorizOutlinedIcon from '@mui/icons-material/SwapHorizOutlined';
 import { formatNumber } from '../common/formatters';
+import { formatPackagingBreakdown } from '../../utils/packaging';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // WINERIX — Stock Transfer dialog (P2K-6)
@@ -55,6 +56,7 @@ function StockTransferDialog({
       locationCode: si.locationCode,
       locationName: si.locationName,
       qtyBottles: si.qtyBottles,
+      bottlesPerCase: si.productBottlesPerCase,
     })),
     [sourceItems]
   );
@@ -183,6 +185,10 @@ function StockTransferDialog({
             {available !== null && (
               <Typography variant="caption" sx={{ color: 'text.secondary', mt: -1 }}>
                 Available at source: <strong>{formatNumber(available, { maximumFractionDigits: 0 })} bottles</strong>
+                {(() => {
+                  const bd = formatPackagingBreakdown(available, selectedSource?.bottlesPerCase);
+                  return bd ? ` (${bd})` : '';
+                })()}
               </Typography>
             )}
 

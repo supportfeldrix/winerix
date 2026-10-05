@@ -113,6 +113,7 @@ function normaliseItem(i) {
     productSkuCode: product ? product.sku_code : null,
     productName: product ? product.name : null,
     productBottleVolumeMl: product ? product.bottle_volume_ml : null,
+    productBottlesPerCase: product ? product.bottles_per_case : null, // packaging presentation only (P2K-8)
     locationCode: location ? location.location_code : null,
     locationName: location ? location.name : null,
   };
@@ -141,7 +142,7 @@ function normaliseOutput(o) {
 
 const ITEM_SELECT =
   'id, org_id, owner_id, product_id, location_id, qty_bottles, created_at, updated_at, ' +
-  'finished_product:finished_products(id, sku_code, name, bottle_volume_ml), ' +
+  'finished_product:finished_products(id, sku_code, name, bottle_volume_ml, bottles_per_case), ' +
   'stock_location:stock_locations(id, location_code, name)';
 
 const OUTPUT_SELECT =

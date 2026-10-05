@@ -12,6 +12,7 @@ import PageContainer from '../components/layout/PageContainer';
 import { useOrganisation } from '../context/OrganisationContext';
 import StockAdjustmentDialog from '../components/stock/StockAdjustmentDialog';
 import { formatNumber } from '../components/common/formatters';
+import { formatPackagingBreakdown } from '../utils/packaging';
 import {
   getStockItems, getStockItemsWithStockForProduct,
   adjustFinishedStock, recordFinishedStockDamage, friendlyStockError,
@@ -157,10 +158,13 @@ function StockAdjustments() {
                 <TableCell>Product</TableCell>
                 <TableCell>Location</TableCell>
                 <TableCell align="right">Bottles</TableCell>
+                <TableCell>Cases</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {items.map((it) => (
+              {items.map((it) => {
+                const breakdown = formatPackagingBreakdown(it.qtyBottles, it.productBottlesPerCase);
+                return (
                 <TableRow key={it.id} hover sx={{ '& .MuiTableCell-root': { py: 1.75 } }}>
                   <TableCell>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
@@ -186,8 +190,12 @@ function StockAdjustments() {
                   <TableCell align="right">
                     <Typography variant="body2" sx={{ color: 'text.primary', fontWeight: 700 }}>{formatNumber(it.qtyBottles, { maximumFractionDigits: 0 })}</Typography>
                   </TableCell>
+                  <TableCell>
+                    <Typography variant="body2" sx={{ color: breakdown ? 'text.secondary' : 'text.disabled' }}>{breakdown || '—'}</Typography>
+                  </TableCell>
                 </TableRow>
-              ))}
+                );
+              })}
             </TableBody>
           </Table>
         </TableContainer>

@@ -6,6 +6,7 @@ import {
 } from '@mui/material';
 import CheckCircleOutlineOutlinedIcon from '@mui/icons-material/CheckCircleOutlineOutlined';
 import { formatNumber } from '../common/formatters';
+import { formatPackagingBreakdown } from '../../utils/packaging';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // WINERIX — Stock Adjustment / Damage dialog (P2K-7)
@@ -55,6 +56,7 @@ function StockAdjustmentDialog({
     [stockItems, locationId]
   );
   const current = currentItem ? Number(currentItem.qtyBottles) : 0;
+  const bottlesPerCase = currentItem ? currentItem.productBottlesPerCase : null;
 
   const qtyNum = Number(qty);
   const qtyValid = Number.isInteger(qtyNum) && qtyNum > 0;
@@ -212,6 +214,14 @@ function StockAdjustmentDialog({
                 <Row label="Current stock" value={`${formatNumber(current, { maximumFractionDigits: 0 })} bottles`} />
                 <Row label={changeLabel} value={`${signedDelta > 0 ? '+' : ''}${formatNumber(signedDelta, { maximumFractionDigits: 0 })} bottles`} />
                 <Row label="Result" value={`${formatNumber(resultingQty, { maximumFractionDigits: 0 })} bottles`} strong />
+                {(() => {
+                  const bd = formatPackagingBreakdown(resultingQty, bottlesPerCase);
+                  return bd ? (
+                    <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.5 }}>
+                      Result packaging: {bd}
+                    </Typography>
+                  ) : null;
+                })()}
               </Box>
             )}
 
