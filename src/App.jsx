@@ -33,6 +33,8 @@ import BottlingRunProfile from './pages/BottlingRunProfile';
 import FinishedProducts from './pages/FinishedProducts';
 import StockLocations from './pages/StockLocations';
 import ReceiveFinishedGoods from './pages/ReceiveFinishedGoods';
+import StockTransfers from './pages/StockTransfers';
+import StockAdjustments from './pages/StockAdjustments';
 import Machinery from './pages/Machinery';
 import MachineryProfile from './components/machinery/MachineryProfile';
 import Finance from './pages/Finance';
@@ -273,6 +275,8 @@ function App() {
             <Route path="/finished-products" element={<FinishedProducts />} />
             <Route path="/stock-locations" element={<StockLocations />} />
             <Route path="/receive-finished-goods" element={<ReceiveFinishedGoods />} />
+            <Route path="/stock/transfers" element={<StockTransfers />} />
+            <Route path="/stock/adjustments" element={<StockAdjustments />} />
             <Route path="/lab/analytes" element={<LabAnalytes />} />
             <Route path="/lab/samples" element={<LabSamples />} />
             <Route path="/lab/samples/:id" element={<LabSampleProfile />} />

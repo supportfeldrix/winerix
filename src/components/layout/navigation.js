@@ -21,6 +21,8 @@ import LiquorOutlinedIcon from '@mui/icons-material/LiquorOutlined';
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
 import WarehouseOutlinedIcon from '@mui/icons-material/WarehouseOutlined';
 import MoveToInboxOutlinedIcon from '@mui/icons-material/MoveToInboxOutlined';
+import SwapHorizOutlinedIcon from '@mui/icons-material/SwapHorizOutlined';
+import TuneOutlinedIcon from '@mui/icons-material/TuneOutlined';
 import BiotechOutlinedIcon from '@mui/icons-material/BiotechOutlined';
 import ColorizeOutlinedIcon from '@mui/icons-material/ColorizeOutlined';
 import RuleOutlinedIcon from '@mui/icons-material/RuleOutlined';
@@ -50,6 +52,8 @@ export const MAIN_NAV = [
   { label: 'Finished Products', path: '/finished-products', icon: Inventory2OutlinedIcon },
   { label: 'Stock Locations', path: '/stock-locations', icon: WarehouseOutlinedIcon },
   { label: 'Receive Finished Goods', path: '/receive-finished-goods', icon: MoveToInboxOutlinedIcon },
+  { label: 'Stock Transfers', path: '/stock/transfers', icon: SwapHorizOutlinedIcon },
+  { label: 'Stock Adjustments', path: '/stock/adjustments', icon: TuneOutlinedIcon },
   { label: 'Lab Analytes', path: '/lab/analytes', icon: BiotechOutlinedIcon },
   { label: 'Lab Samples', path: '/lab/samples', icon: ColorizeOutlinedIcon },
   { label: 'Lab Specifications', path: '/lab/specifications', icon: RuleOutlinedIcon },
