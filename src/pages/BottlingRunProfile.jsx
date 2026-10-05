@@ -6,12 +6,12 @@ import {
 import ArrowBackOutlinedIcon from '@mui/icons-material/ArrowBackOutlined';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import LiquorOutlinedIcon from '@mui/icons-material/LiquorOutlined';
-import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
 import TaskAltOutlinedIcon from '@mui/icons-material/TaskAltOutlined';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import PageContainer from '../components/layout/PageContainer';
 import BottlingRunForm from '../components/bottling/BottlingRunForm';
 import BottlingRunLotsSection from '../components/bottling/BottlingRunLotsSection';
+import BottlingOutputsSection from '../components/bottling/BottlingOutputsSection';
 import { bottlingRunStatusColor, isBottlingRunEditable } from '../components/bottling/BottlingRunTable';
 import { formatDate } from '../components/common/formatters';
 import { useOrganisation } from '../context/OrganisationContext';
@@ -192,14 +192,10 @@ function BottlingRunProfile() {
       {/* A. Source Wine Lots (P2J-B5-2 — real workflow) */}
       <BottlingRunLotsSection run={run} />
 
-      {/* B. Bottling Outputs (placeholder — future B5 task) */}
-      <PlaceholderSection
-        icon={<Inventory2OutlinedIcon />}
-        title="Bottling Outputs"
-        description="No bottling outputs have been recorded for this run yet. Recording bottled quantities and packaging will be available in a later step."
-      />
+      {/* B. Bottling Outputs (P2J-B5-3 — real workflow) */}
+      <BottlingOutputsSection run={run} />
 
-      {/* C. Completion */}
+      {/* C. Completion (placeholder — future B5 task) */}
       <PlaceholderSection
         icon={<TaskAltOutlinedIcon />}
         title="Completion"
