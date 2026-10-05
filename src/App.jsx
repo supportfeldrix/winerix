@@ -37,6 +37,8 @@ import StockTransfers from './pages/StockTransfers';
 import StockAdjustments from './pages/StockAdjustments';
 import Customers from './pages/Customers';
 import CustomerProfile from './pages/CustomerProfile';
+import SalesOrders from './pages/SalesOrders';
+import SalesOrderProfile from './pages/SalesOrderProfile';
 import Machinery from './pages/Machinery';
 import MachineryProfile from './components/machinery/MachineryProfile';
 import Finance from './pages/Finance';
@@ -281,6 +283,8 @@ function App() {
             <Route path="/stock/adjustments" element={<StockAdjustments />} />
             <Route path="/customers" element={<Customers />} />
             <Route path="/customers/:id" element={<CustomerProfile />} />
+            <Route path="/sales-orders" element={<SalesOrders />} />
+            <Route path="/sales-orders/:id" element={<SalesOrderProfile />} />
             <Route path="/lab/analytes" element={<LabAnalytes />} />
             <Route path="/lab/samples" element={<LabSamples />} />
             <Route path="/lab/samples/:id" element={<LabSampleProfile />} />
