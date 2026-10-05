@@ -638,3 +638,41 @@ export async function getReleaseLabSampleOptions(options = {}) {
     error: null,
   };
 }
+
+// ── Atomic completion (RPC wrapper — P2J-B4 / B5-4) ──────────────────────────
+
+/**
+ * Complete a bottling run atomically via the SECURITY DEFINER RPC
+ * public.complete_bottling_run(uuid). This wrapper performs NO client-side
+ * state mutation: it does not deduct Wine Lot volume, insert lot_volume_movements,
+ * create production_events, or update any table. ALL state changes (per-source
+ * bottling_out / bottling_loss movements, one 'bottling' production_event per
+ * source lot, wine_lots.volume_litres deduction with status -> 'bottled' at zero,
+ * and the run status -> 'completed') happen inside the single atomic RPC
+ * transaction, which is the sole authority.
+ *
+ * The RPC derives org + actor from auth.uid() (requires OWNER/ADMIN/CELLAR) and
+ * enforces status eligibility, source/output presence, per-lot reconciliation
+ * (bottled + loss = consumed), availability (consumed <= lot volume) and output
+ * reconciliation (SUM output bottled = SUM source bottled). On any failure it
+ * rolls back entirely — a returned error means NO partial transaction occurred.
+ *
+ * @param {string} bottlingRunId
+ * @returns {Promise<{ data: object|null, error: object|null }>}
+ */
+export async function completeBottlingRun(bottlingRunId) {
+  if (!bottlingRunId) return { data: null, error: { message: 'A bottling run is required.' } };
+  // Org-aware by virtue of the authenticated session + the RPC deriving the
+  // run's org from the row; no client-side org id is sent (the RPC rejects
+  // cross-org actors). We still guard for an active org for consistent UX.
+  const orgId = getActiveOrgId();
+  if (!orgId) return { data: null, error: { message: 'No active organisation' } };
+
+  const { data, error } = await supabase.rpc('complete_bottling_run', {
+    p_bottling_run_id: bottlingRunId,
+  });
+  if (error) return { data: null, error };
+  // The RPC returns the completed public.bottling_runs row (single composite).
+  const row = Array.isArray(data) ? data[0] : data;
+  return { data: normaliseRun(row), error: null };
+}

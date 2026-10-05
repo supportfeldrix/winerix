@@ -57,6 +57,7 @@ const EPSILON = 1e-6;
 function BottlingOutputsSection({ run }) {
   const { activeOrgId } = useOrganisation();
   const runId = run?.id || null;
+  const runStatus = run?.status || null;
   const editable = isBottlingRunEditable(run?.status);
 
   const [outputs, setOutputs] = useState([]);
@@ -99,7 +100,9 @@ function BottlingOutputsSection({ run }) {
     if (!activeOrgId || !runId) { setOutputs([]); setRunLots([]); return; }
     setOutputs([]); setRunLots([]);
     load();
-  }, [activeOrgId, runId, load]);
+    // runStatus included so the section refetches + flips read-only when the run
+    // transitions to a terminal status (e.g. after completion).
+  }, [activeOrgId, runId, runStatus, load]);
 
   // Totals from the actual output rows (no invented yields / cases / pallets).
   const totals = outputs.reduce(

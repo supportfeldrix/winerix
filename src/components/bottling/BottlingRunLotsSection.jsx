@@ -59,6 +59,7 @@ function BottlingRunLotsSection({ run }) {
   const navigate = useNavigate();
   const { activeOrgId } = useOrganisation();
   const runId = run?.id || null;
+  const runStatus = run?.status || null;
   const editable = isBottlingRunEditable(run?.status);
 
   const [allocations, setAllocations] = useState([]);
@@ -99,7 +100,9 @@ function BottlingRunLotsSection({ run }) {
     if (!activeOrgId || !runId) { setAllocations([]); setLotOptions([]); return; }
     setAllocations([]); setLotOptions([]);
     load();
-  }, [activeOrgId, runId, load]);
+    // runStatus is included so the section refetches + flips read-only when the
+    // run transitions to a terminal status (e.g. after completion).
+  }, [activeOrgId, runId, runStatus, load]);
 
   // Totals from the actual rows (no invented percentages/yields).
   const totals = allocations.reduce(

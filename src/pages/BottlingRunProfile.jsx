@@ -6,12 +6,12 @@ import {
 import ArrowBackOutlinedIcon from '@mui/icons-material/ArrowBackOutlined';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import LiquorOutlinedIcon from '@mui/icons-material/LiquorOutlined';
-import TaskAltOutlinedIcon from '@mui/icons-material/TaskAltOutlined';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import PageContainer from '../components/layout/PageContainer';
 import BottlingRunForm from '../components/bottling/BottlingRunForm';
 import BottlingRunLotsSection from '../components/bottling/BottlingRunLotsSection';
 import BottlingOutputsSection from '../components/bottling/BottlingOutputsSection';
+import BottlingCompletionSection from '../components/bottling/BottlingCompletionSection';
 import { bottlingRunStatusColor, isBottlingRunEditable } from '../components/bottling/BottlingRunTable';
 import { formatDate } from '../components/common/formatters';
 import { useOrganisation } from '../context/OrganisationContext';
@@ -21,14 +21,16 @@ import {
 } from '../services/bottlingService';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// WINERIX — Bottling Run profile (P2J-B5-1)
+// WINERIX — Bottling Run profile (P2J-B5)
 //
 // Shows a single run's header and offers Edit for ACTIVE runs (planned /
 // in_progress). Completed/cancelled runs are terminal — the UI disables Edit and
-// the DB (036) also rejects updates. The three workflow sections below (Source
-// Wine Lots, Bottling Outputs, Completion) are intentionally placeholders for
-// future B5 tasks: no source-lot, output or completion logic is implemented here.
-// All data access is through bottlingService (never Supabase directly).
+// the DB (036) also rejects updates. The three workflow sections below are the
+// real workflows: Source Wine Lots (B5-2), Bottling Outputs (B5-3) and
+// Completion (B5-4, which invokes the atomic complete_bottling_run RPC). On
+// completion the profile reloads the run so every section reflects the real
+// post-deduction database state. All data access is through bottlingService
+// (never Supabase directly).
 // ─────────────────────────────────────────────────────────────────────────────
 
 // A compact labelled field used throughout the detail grid.
@@ -38,24 +40,6 @@ function Field({ label, children }) {
       <Typography variant="overline" sx={{ color: 'text.disabled', letterSpacing: '0.08em' }}>{label}</Typography>
       <Typography variant="body1" sx={{ color: 'text.primary' }}>{children}</Typography>
     </Box>
-  );
-}
-
-// A clearly-marked placeholder for a future B5 workflow section.
-function PlaceholderSection({ icon, title, description }) {
-  return (
-    <Paper variant="outlined" sx={{ borderRadius: 3, p: { xs: 2.5, md: 3.5 }, mt: 3 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, mb: 2 }}>
-        <Box sx={{ width: 36, height: 36, borderRadius: 1.5, bgcolor: 'background.subtle', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'secondary.main' }}>
-          {icon}
-        </Box>
-        <Typography variant="h5" component="h2">{title}</Typography>
-      </Box>
-      <Paper variant="outlined" sx={{ borderStyle: 'dashed', borderColor: 'divider', bgcolor: 'background.subtle', px: 3, py: { xs: 4, md: 5 }, textAlign: 'center' }}>
-        <Typography variant="body2" sx={{ color: 'text.secondary', maxWidth: 520, mx: 'auto' }}>{description}</Typography>
-        <Chip label="Coming soon" size="small" sx={{ mt: 2, fontWeight: 600 }} />
-      </Paper>
-    </Paper>
   );
 }
 
@@ -195,12 +179,8 @@ function BottlingRunProfile() {
       {/* B. Bottling Outputs (P2J-B5-3 — real workflow) */}
       <BottlingOutputsSection run={run} />
 
-      {/* C. Completion (placeholder — future B5 task) */}
-      <PlaceholderSection
-        icon={<TaskAltOutlinedIcon />}
-        title="Completion"
-        description="This run has not been completed. Completing a bottling run — which deducts source volumes and reconciles outputs — will be available in a later step."
-      />
+      {/* C. Completion (P2J-B5-4 — real review + atomic completion) */}
+      <BottlingCompletionSection run={run} onCompleted={load} />
 
       <BottlingRunForm
         open={editOpen}
