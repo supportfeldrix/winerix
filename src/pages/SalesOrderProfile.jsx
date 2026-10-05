@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import {
   Box, Paper, Typography, Chip, Button, Divider, Grid, Skeleton, Alert, Snackbar, Link,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, Tooltip,
-  Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, CircularProgress,
+  Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, CircularProgress, TextField,
 } from '@mui/material';
 import ArrowBackOutlinedIcon from '@mui/icons-material/ArrowBackOutlined';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
@@ -13,6 +13,9 @@ import TaskAltOutlinedIcon from '@mui/icons-material/TaskAltOutlined';
 import CheckCircleOutlineOutlinedIcon from '@mui/icons-material/CheckCircleOutlineOutlined';
 import ReceiptLongOutlinedIcon from '@mui/icons-material/ReceiptLongOutlined';
 import ListAltOutlinedIcon from '@mui/icons-material/ListAltOutlined';
+import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
+import BlockOutlinedIcon from '@mui/icons-material/BlockOutlined';
+import LocalShippingOutlinedIcon from '@mui/icons-material/LocalShippingOutlined';
 import PageContainer from '../components/layout/PageContainer';
 import { useOrganisation } from '../context/OrganisationContext';
 import SalesOrderForm from '../components/sales/SalesOrderForm';
@@ -22,29 +25,36 @@ import { salesOrderStatusColor } from '../components/sales/SalesOrderTable';
 import ConfirmDialog from '../components/common/ConfirmDialog';
 import { formatDate, formatNumber } from '../components/common/formatters';
 import {
-  getSalesOrder, updateDraftSalesOrder, salesOrderStatusLabel, friendlySalesOrderError,
+  getSalesOrder, updateDraftSalesOrder, cancelSalesOrder, salesOrderStatusLabel, friendlySalesOrderError,
 } from '../services/salesOrderService';
 import {
   getSalesOrderLines, addSalesOrderLine, updateSalesOrderLine, deleteSalesOrderLine,
   confirmSalesOrder, friendlySalesOrderLineError,
 } from '../services/salesOrderLineService';
+import { getAllocationsBySalesOrder } from '../services/stockAllocationService';
 import { getCustomers } from '../services/customerService';
 import { getAddressesByCustomer } from '../services/customerAddressService';
 import { getFinishedProductOptions } from '../services/finishedProductService';
 import { getStockLocationOptions } from '../services/stockLocationService';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// WINERIX — Sales Order profile (P2L-5 + P2L-6)
+// WINERIX — Sales Order profile (P2L-5 + P2L-6 + P2L-7)
 //
 // Draft orders: editable header, order-line CRUD, server-recalculated totals and
 // a Confirm action. Confirmed orders: read-only lines/totals and the historical
 // JSONB address snapshots (live-address edits never rewrite a confirmed order).
 //
-// Once an order is in the allocation flow (confirmed / partially_allocated /
-// ready_to_dispatch) a Stock Allocation panel (P2L-6) lets OWNER/ADMIN/SALES
-// users reserve available stock per line/location. Allocation never reduces
-// physical stock; the order status is recomputed server-side. All data access
-// goes through services.
+// Allocation flow (confirmed / partially_allocated / ready_to_dispatch): a Stock
+// Allocation panel (P2L-6) lets OWNER/ADMIN/SALES users reserve available stock
+// per line/location; allocation never reduces physical stock and the status is
+// recomputed server-side.
+//
+// Lifecycle (P2L-7): a controlled Cancel action (cancel_sales_order RPC). A draft
+// may be cancelled freely; a confirmed/partially_allocated/ready_to_dispatch
+// order may be cancelled ONLY when it has zero open allocations (the user must
+// release them first — cancellation never auto-releases). Cancelled orders are
+// preserved as historical records. No dispatch/finance here. All data access
+// goes through services; the database is authoritative for status.
 // ─────────────────────────────────────────────────────────────────────────────
 
 function Field({ label, children }) {
@@ -97,6 +107,12 @@ function SalesOrderProfile() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirming, setConfirming] = useState(false);
 
+  // Cancel dialog (P2L-7)
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
+  const [cancelling, setCancelling] = useState(false);
+  const [openAllocationCount, setOpenAllocationCount] = useState(0);
+
   const load = useCallback(async () => {
     setLoading(true); setError('');
     const { data, error: err } = await getSalesOrder(id);
@@ -104,30 +120,43 @@ function SalesOrderProfile() {
     if (!data) { setError('Sales order not found.'); setLoading(false); return; }
     setOrder(data);
 
-    const [linesRes, addrRes, custRes, prodRes, locRes] = await Promise.all([
+    const [linesRes, addrRes, custRes, prodRes, locRes, allocRes] = await Promise.all([
       getSalesOrderLines(id),
       data.customerId ? getAddressesByCustomer(data.customerId) : Promise.resolve({ data: [] }),
       getCustomers(),
       getFinishedProductOptions(),
       getStockLocationOptions(),
+      getAllocationsBySalesOrder(id),
     ]);
     if (!linesRes.error) setLines(linesRes.data || []);
     if (!addrRes.error) setAddresses(addrRes.data || []);
     if (!custRes.error) setCustomerOptions(custRes.data || []);
     if (!prodRes.error) setProductOptions(prodRes.data || []);
     if (!locRes.error) setLocationOptions(locRes.data || []);
+    if (!allocRes.error) {
+      setOpenAllocationCount((allocRes.data || []).filter((a) => a.status === 'open').length);
+    }
     setLoading(false);
   }, [id]);
 
   useEffect(() => {
-    if (!activeOrgId) { setOrder(null); setLines([]); setAddresses([]); setCustomerOptions([]); setProductOptions([]); setLocationOptions([]); return; }
-    setOrder(null); setLines([]); setAddresses([]); setCustomerOptions([]); setProductOptions([]); setLocationOptions([]);
+    if (!activeOrgId) { setOrder(null); setLines([]); setAddresses([]); setCustomerOptions([]); setProductOptions([]); setLocationOptions([]); setOpenAllocationCount(0); return; }
+    setOrder(null); setLines([]); setAddresses([]); setCustomerOptions([]); setProductOptions([]); setLocationOptions([]); setOpenAllocationCount(0);
     load();
   }, [activeOrgId, load]);
 
   const isDraft = order?.status === 'draft';
+  const isCancelled = order?.status === 'cancelled';
+  const isReadyToDispatch = order?.status === 'ready_to_dispatch';
   const canAllocate = ['OWNER', 'ADMIN', 'SALES'].includes(activeRole);
   const inAllocationFlow = ['confirmed', 'partially_allocated', 'ready_to_dispatch'].includes(order?.status);
+  // Cancellable: OWNER/ADMIN/SALES, not already cancelled, not in a P2M state,
+  // and (for non-draft) only when there are no open allocations. Drafts have no
+  // allocations, so they are always cancellable by an authorised user.
+  const inP2mState = ['dispatched', 'partially_dispatched', 'completed'].includes(order?.status);
+  const hasOpenAllocations = openAllocationCount > 0;
+  const canCancel = canAllocate && !isCancelled && !inP2mState && (isDraft || !hasOpenAllocations);
+  const cancelBlockedByAllocations = canAllocate && !isCancelled && !inP2mState && !isDraft && hasOpenAllocations;
   const cur = order?.currency || 'ZAR';
 
   // Address display: prefer the confirmed JSONB snapshot; else the live address.
@@ -192,6 +221,16 @@ function SalesOrderProfile() {
     setToast('Sales order confirmed.'); await load();
   };
 
+  // ── Cancel (P2L-7) ──
+  const openCancel = () => { setCancelReason(''); setCancelOpen(true); };
+  const handleCancel = async () => {
+    setCancelling(true);
+    const { error: err } = await cancelSalesOrder(id, cancelReason);
+    setCancelling(false);
+    if (err) { setError(friendlySalesOrderError(err)); setCancelOpen(false); return; }
+    setCancelOpen(false); setToast('Sales order cancelled.'); await load();
+  };
+
   if (loading) {
     return (
       <PageContainer maxWidth={1100} sx={{ px: { xs: 2, sm: 3, md: 4 } }}>
@@ -234,15 +273,48 @@ function SalesOrderProfile() {
               <Chip label={salesOrderStatusLabel(order.status)} size="small" color={salesOrderStatusColor(order.status)} sx={{ fontWeight: 600, mt: 0.5 }} />
             </Box>
           </Box>
-          {isDraft && (
-            <Button variant="outlined" color="primary" startIcon={<EditOutlinedIcon />} onClick={() => setEditOpen(true)} sx={{ flexShrink: 0 }}>Edit Draft</Button>
-          )}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexShrink: 0, flexWrap: 'wrap' }}>
+            {isDraft && (
+              <Button variant="outlined" color="primary" startIcon={<EditOutlinedIcon />} onClick={() => setEditOpen(true)}>Edit Draft</Button>
+            )}
+            {canCancel && (
+              <Button variant="outlined" color="error" startIcon={<CancelOutlinedIcon />} onClick={openCancel}>Cancel Order</Button>
+            )}
+            {cancelBlockedByAllocations && (
+              <Tooltip title="Release all open allocations before cancelling.">
+                <span>
+                  <Button variant="outlined" color="inherit" startIcon={<BlockOutlinedIcon />} disabled>Cancel Order</Button>
+                </span>
+              </Tooltip>
+            )}
+          </Box>
         </Box>
 
-        {inAllocationFlow && (
+        {isReadyToDispatch && (
+          <Alert severity="success" icon={<LocalShippingOutlinedIcon />} sx={{ mb: 2 }}>
+            Ready to dispatch — every order line is fully allocated. All required stock is reserved.
+            Physical stock has not been deducted; dispatch happens in a later phase.
+          </Alert>
+        )}
+
+        {inAllocationFlow && !isReadyToDispatch && (
           <Alert severity="success" icon={<CheckCircleOutlineOutlinedIcon />} sx={{ mb: 2 }}>
             This order is confirmed. Lines, totals and addresses are locked as a historical record.
             Reserve stock in the allocation panel below — physical stock is not reduced until dispatch.
+          </Alert>
+        )}
+
+        {cancelBlockedByAllocations && (
+          <Alert severity="info" sx={{ mb: 2 }}>
+            This order has {openAllocationCount} open stock allocation{openAllocationCount === 1 ? '' : 's'}.
+            Release {openAllocationCount === 1 ? 'it' : 'them'} in the allocation panel below before the order can be cancelled.
+          </Alert>
+        )}
+
+        {isCancelled && (
+          <Alert severity="error" icon={<CancelOutlinedIcon />} sx={{ mb: 2 }}>
+            This order is cancelled. It is retained as a historical record. No stock was moved and no
+            invoice or payment was created.
           </Alert>
         )}
 
@@ -432,6 +504,33 @@ function SalesOrderProfile() {
           <Button onClick={() => setConfirmOpen(false)} color="inherit" disabled={confirming}>Cancel</Button>
           <Button onClick={handleConfirm} variant="contained" color="primary" disabled={confirming}>
             {confirming ? <CircularProgress size={20} color="inherit" /> : 'Confirm Order'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Cancel order dialog (P2L-7) */}
+      <Dialog open={cancelOpen} onClose={cancelling ? undefined : () => setCancelOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>Cancel Sales Order</DialogTitle>
+        <DialogContent>
+          <Paper variant="outlined" sx={{ borderRadius: 2, p: 2, bgcolor: 'background.subtle', mb: 2 }}>
+            <ConfRow label="Order Number" value={order.orderNumber} />
+            <ConfRow label="Customer" value={order.customerLegalName || '—'} />
+            <ConfRow label="Current Status" value={salesOrderStatusLabel(order.status)} />
+          </Paper>
+          <TextField
+            label="Reason (optional)" value={cancelReason} onChange={(e) => setCancelReason(e.target.value)}
+            fullWidth multiline minRows={2} disabled={cancelling}
+            helperText="Recorded with the order's notes for the audit trail."
+          />
+          <Alert severity="warning" sx={{ mt: 2 }}>
+            This order will be permanently marked as cancelled. Historical order information is retained
+            and the order is not deleted. No stock is moved.
+          </Alert>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          <Button onClick={() => setCancelOpen(false)} color="inherit" disabled={cancelling}>Keep Order</Button>
+          <Button onClick={handleCancel} variant="contained" color="error" disabled={cancelling}>
+            {cancelling ? <CircularProgress size={20} color="inherit" /> : 'Cancel Order'}
           </Button>
         </DialogActions>
       </Dialog>

@@ -58,9 +58,20 @@ export function friendlySalesOrderError(error) {
     return 'A referenced customer or address could not be found.';
   }
   if (code === '23502') return 'Please fill in all required fields.';
-  if (code === '42501' || msg.includes('row-level security') || msg.includes('permission') || msg.includes('not a member')) {
+  // ── Lifecycle / cancellation (P2L-7) ──
+  if (msg.includes('open stock allocation')) {
+    return 'This order still has open stock allocations. Release them in the allocation panel before cancelling.';
+  }
+  if (msg.includes('already cancelled')) {
+    return 'This sales order is already cancelled.';
+  }
+  if (msg.includes('dispatched or completed')) {
+    return 'A dispatched or completed sales order cannot be cancelled.';
+  }
+  if (code === '42501' || msg.includes('row-level security') || msg.includes('permission') || msg.includes('not a member') || msg.includes('owner, admin or sales')) {
     return 'You do not have permission to manage sales orders. This requires an Owner, Admin or Sales role.';
   }
+  if (msg.includes('not authenticated')) return 'Your session has expired. Please sign in again.';
   if (msg.includes('network') || msg.includes('fetch')) {
     return 'Network error. Please check your connection and try again.';
   }
@@ -272,4 +283,29 @@ export async function updateDraftSalesOrder(id, input) {
     .from('sales_orders').update(row).eq('id', id).eq('org_id', orgId).select(SELECT).single();
   if (error) return { data: null, error };
   return { data: normalise(data), error: null };
+}
+
+// ── Lifecycle (P2L-7) ────────────────────────────────────────────────────────
+
+/**
+ * Cancel a sales order via the SECURITY DEFINER RPC cancel_sales_order (P2L-7).
+ * The database enforces the rules: OWNER/ADMIN/SALES only, same org, not already
+ * cancelled, not in a P2M state, and ZERO open stock allocations (the user must
+ * release open allocations first — cancellation never auto-releases them). The
+ * order is preserved as a historical record; the optional reason is appended to
+ * notes; status becomes 'cancelled'. No stock is touched. Returns the updated
+ * order (normalised).
+ * @param {string} id      sales order id
+ * @param {string|null} [reason]
+ * @returns {Promise<{ data: object|null, error: object|null }>}
+ */
+export async function cancelSalesOrder(id, reason = null) {
+  if (!id) return { data: null, error: { message: 'A sales order is required.' } };
+  const trimmedReason = typeof reason === 'string' && reason.trim() !== '' ? reason.trim() : null;
+  const { data, error } = await supabase.rpc('cancel_sales_order', {
+    p_sales_order_id: id,
+    p_reason: trimmedReason,
+  });
+  if (error) return { data: null, error };
+  return { data: normalise(Array.isArray(data) ? data[0] : data), error: null };
 }
