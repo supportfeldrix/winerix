@@ -17,6 +17,7 @@ import PageContainer from '../components/layout/PageContainer';
 import { useOrganisation } from '../context/OrganisationContext';
 import SalesOrderForm from '../components/sales/SalesOrderForm';
 import SalesOrderLineForm from '../components/sales/SalesOrderLineForm';
+import StockAllocationPanel from '../components/sales/StockAllocationPanel';
 import { salesOrderStatusColor } from '../components/sales/SalesOrderTable';
 import ConfirmDialog from '../components/common/ConfirmDialog';
 import { formatDate, formatNumber } from '../components/common/formatters';
@@ -30,14 +31,20 @@ import {
 import { getCustomers } from '../services/customerService';
 import { getAddressesByCustomer } from '../services/customerAddressService';
 import { getFinishedProductOptions } from '../services/finishedProductService';
+import { getStockLocationOptions } from '../services/stockLocationService';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// WINERIX — Sales Order profile (P2L-5)
+// WINERIX — Sales Order profile (P2L-5 + P2L-6)
 //
 // Draft orders: editable header, order-line CRUD, server-recalculated totals and
 // a Confirm action. Confirmed orders: read-only lines/totals and the historical
 // JSONB address snapshots (live-address edits never rewrite a confirmed order).
-// All data access through services. No stock allocation (that is P2L-6).
+//
+// Once an order is in the allocation flow (confirmed / partially_allocated /
+// ready_to_dispatch) a Stock Allocation panel (P2L-6) lets OWNER/ADMIN/SALES
+// users reserve available stock per line/location. Allocation never reduces
+// physical stock; the order status is recomputed server-side. All data access
+// goes through services.
 // ─────────────────────────────────────────────────────────────────────────────
 
 function Field({ label, children }) {
@@ -62,13 +69,14 @@ function snapshotAddressText(s) {
 function SalesOrderProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { activeOrgId } = useOrganisation();
+  const { activeOrgId, activeRole } = useOrganisation();
 
   const [order, setOrder] = useState(null);
   const [lines, setLines] = useState([]);
   const [addresses, setAddresses] = useState([]);
   const [customerOptions, setCustomerOptions] = useState([]);
   const [productOptions, setProductOptions] = useState([]);
+  const [locationOptions, setLocationOptions] = useState([]);
   const [formAddressOptions, setFormAddressOptions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -96,26 +104,30 @@ function SalesOrderProfile() {
     if (!data) { setError('Sales order not found.'); setLoading(false); return; }
     setOrder(data);
 
-    const [linesRes, addrRes, custRes, prodRes] = await Promise.all([
+    const [linesRes, addrRes, custRes, prodRes, locRes] = await Promise.all([
       getSalesOrderLines(id),
       data.customerId ? getAddressesByCustomer(data.customerId) : Promise.resolve({ data: [] }),
       getCustomers(),
       getFinishedProductOptions(),
+      getStockLocationOptions(),
     ]);
     if (!linesRes.error) setLines(linesRes.data || []);
     if (!addrRes.error) setAddresses(addrRes.data || []);
     if (!custRes.error) setCustomerOptions(custRes.data || []);
     if (!prodRes.error) setProductOptions(prodRes.data || []);
+    if (!locRes.error) setLocationOptions(locRes.data || []);
     setLoading(false);
   }, [id]);
 
   useEffect(() => {
-    if (!activeOrgId) { setOrder(null); setLines([]); setAddresses([]); setCustomerOptions([]); setProductOptions([]); return; }
-    setOrder(null); setLines([]); setAddresses([]); setCustomerOptions([]); setProductOptions([]);
+    if (!activeOrgId) { setOrder(null); setLines([]); setAddresses([]); setCustomerOptions([]); setProductOptions([]); setLocationOptions([]); return; }
+    setOrder(null); setLines([]); setAddresses([]); setCustomerOptions([]); setProductOptions([]); setLocationOptions([]);
     load();
   }, [activeOrgId, load]);
 
   const isDraft = order?.status === 'draft';
+  const canAllocate = ['OWNER', 'ADMIN', 'SALES'].includes(activeRole);
+  const inAllocationFlow = ['confirmed', 'partially_allocated', 'ready_to_dispatch'].includes(order?.status);
   const cur = order?.currency || 'ZAR';
 
   // Address display: prefer the confirmed JSONB snapshot; else the live address.
@@ -227,9 +239,10 @@ function SalesOrderProfile() {
           )}
         </Box>
 
-        {order.status === 'confirmed' && (
+        {inAllocationFlow && (
           <Alert severity="success" icon={<CheckCircleOutlineOutlinedIcon />} sx={{ mb: 2 }}>
             This order is confirmed. Lines, totals and addresses are locked as a historical record.
+            Reserve stock in the allocation panel below — physical stock is not reduced until dispatch.
           </Alert>
         )}
 
@@ -346,6 +359,18 @@ function SalesOrderProfile() {
           </Box>
         )}
       </Paper>
+
+      {/* Stock allocation (P2L-6) — only in the allocation flow. */}
+      {inAllocationFlow && lines.length > 0 && (
+        <StockAllocationPanel
+          orderId={id}
+          lines={lines}
+          currency={cur}
+          locationOptions={locationOptions}
+          canWrite={canAllocate}
+          onChanged={load}
+        />
+      )}
 
       {/* Header edit dialog */}
       <SalesOrderForm
