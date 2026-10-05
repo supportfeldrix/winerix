@@ -9,7 +9,7 @@ import {
   Typography,
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
-import { MAIN_NAV, SECONDARY_NAV, SIDEBAR_WIDTH } from './navigation';
+import { MAIN_NAV_GROUPS, SECONDARY_NAV, SIDEBAR_WIDTH } from './navigation';
 import winerixLogo from '../../assets/logo/WineRix main logo.png';
 import GrapevineDecoration from './GrapevineDecoration';
 
@@ -147,8 +147,12 @@ function Sidebar({ onNavigate }) {
           '&::-webkit-scrollbar': { width: 0, height: 0, display: 'none' }, // Chromium/WebKit
         }}
       >
-        {sectionLabel('Manage')}
-        <List disablePadding>{MAIN_NAV.map(renderNavItem)}</List>
+        {MAIN_NAV_GROUPS.map((group) => (
+          <Box key={group.label}>
+            {sectionLabel(group.label)}
+            <List disablePadding>{group.items.map(renderNavItem)}</List>
+          </Box>
+        ))}
       </Box>
 
       {/* Account — anchored below the scroll area, always accessible */}
