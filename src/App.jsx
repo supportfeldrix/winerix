@@ -36,6 +36,7 @@ import ReceiveFinishedGoods from './pages/ReceiveFinishedGoods';
 import StockTransfers from './pages/StockTransfers';
 import StockAdjustments from './pages/StockAdjustments';
 import Customers from './pages/Customers';
+import CustomerProfile from './pages/CustomerProfile';
 import Machinery from './pages/Machinery';
 import MachineryProfile from './components/machinery/MachineryProfile';
 import Finance from './pages/Finance';
@@ -279,6 +280,7 @@ function App() {
             <Route path="/stock/transfers" element={<StockTransfers />} />
             <Route path="/stock/adjustments" element={<StockAdjustments />} />
             <Route path="/customers" element={<Customers />} />
+            <Route path="/customers/:id" element={<CustomerProfile />} />
             <Route path="/lab/analytes" element={<LabAnalytes />} />
             <Route path="/lab/samples" element={<LabSamples />} />
             <Route path="/lab/samples/:id" element={<LabSampleProfile />} />

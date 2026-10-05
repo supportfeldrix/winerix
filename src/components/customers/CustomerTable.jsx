@@ -6,6 +6,7 @@ import { alpha } from '@mui/material/styles';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import BlockOutlinedIcon from '@mui/icons-material/BlockOutlined';
 import RestartAltOutlinedIcon from '@mui/icons-material/RestartAltOutlined';
+import OpenInNewOutlinedIcon from '@mui/icons-material/OpenInNewOutlined';
 import StorefrontOutlinedIcon from '@mui/icons-material/StorefrontOutlined';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -16,7 +17,7 @@ import StorefrontOutlinedIcon from '@mui/icons-material/StorefrontOutlined';
 // all data access through customerService.
 // ─────────────────────────────────────────────────────────────────────────────
 
-function CustomerTable({ customers, onEdit, onDeactivate, onReactivate }) {
+function CustomerTable({ customers, onOpen, onEdit, onDeactivate, onReactivate }) {
   return (
     <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 3, overflowX: 'auto' }}>
       <Table sx={{ minWidth: 1040 }} aria-label="Customers">
@@ -46,7 +47,15 @@ function CustomerTable({ customers, onEdit, onDeactivate, onReactivate }) {
                   >
                     <StorefrontOutlinedIcon sx={{ fontSize: '1.1rem' }} />
                   </Box>
-                  <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }}>{c.legalName}</Typography>
+                  <Link
+                    component="button"
+                    type="button"
+                    underline="hover"
+                    onClick={() => onOpen?.(c)}
+                    sx={{ fontWeight: 600, color: 'text.primary', textAlign: 'left' }}
+                  >
+                    {c.legalName}
+                  </Link>
                 </Box>
               </TableCell>
               <TableCell>
@@ -76,6 +85,11 @@ function CustomerTable({ customers, onEdit, onDeactivate, onReactivate }) {
               </TableCell>
               <TableCell align="right">
                 <Box sx={{ display: 'inline-flex' }}>
+                  <Tooltip title="Open">
+                    <IconButton size="small" color="primary" aria-label={`Open ${c.legalName}`} onClick={() => onOpen?.(c)}>
+                      <OpenInNewOutlinedIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
                   <Tooltip title="Edit">
                     <IconButton size="small" aria-label={`Edit ${c.legalName}`} onClick={() => onEdit?.(c)}>
                       <EditOutlinedIcon fontSize="small" />

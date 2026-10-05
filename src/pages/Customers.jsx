@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box, Typography, Button, TextField, InputAdornment, MenuItem, Paper,
   Skeleton, Alert, Snackbar, Stack,
@@ -33,6 +34,7 @@ const SCOPE_ACTIVE = 'active';
 const SCOPE_ALL = 'all';
 
 function Customers() {
+  const navigate = useNavigate();
   const { activeOrgId } = useOrganisation();
 
   const [customers, setCustomers] = useState([]);
@@ -176,6 +178,7 @@ function Customers() {
       ) : (
         <CustomerTable
           customers={filtered}
+          onOpen={(c) => navigate(`/customers/${c.id}`)}
           onEdit={openEdit}
           onDeactivate={setDeactivateTarget}
           onReactivate={handleReactivate}
