@@ -35,6 +35,7 @@ import AssessmentOutlinedIcon from '@mui/icons-material/AssessmentOutlined';
 import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined';
 import CloudOutlinedIcon from '@mui/icons-material/CloudOutlined';
 import PersonOutlineOutlinedIcon from '@mui/icons-material/PersonOutlineOutlined';
+import StorefrontOutlinedIcon from '@mui/icons-material/StorefrontOutlined';
 
 // Primary application navigation, grouped by business area. Each group has a
 // short, non-clickable section label and the same item objects (unchanged
@@ -85,6 +86,12 @@ export const MAIN_NAV_GROUPS = [
       { label: 'Receive Finished Goods', path: '/receive-finished-goods', icon: MoveToInboxOutlinedIcon },
       { label: 'Stock Transfers', path: '/stock/transfers', icon: SwapHorizOutlinedIcon },
       { label: 'Stock Adjustments', path: '/stock/adjustments', icon: TuneOutlinedIcon },
+    ],
+  },
+  {
+    label: 'Commercial',
+    items: [
+      { label: 'Customers', path: '/customers', icon: StorefrontOutlinedIcon },
     ],
   },
   {
