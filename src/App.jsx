@@ -55,6 +55,7 @@ import Reports from './pages/Reports';
 import AIIntelligence from './pages/AIIntelligence';
 import Weather from './pages/Weather';
 import Account from './pages/Account';
+import DispatchTestHarness from './pages/DispatchTestHarness'; // TEMPORARY / TEST-ONLY (P2M-2)
 import ProtectedRoute from './components/auth/ProtectedRoute';
 
 // Landing page (existing brand shell)
@@ -301,6 +302,8 @@ function App() {
             <Route path="/ai-intelligence" element={<AIIntelligence />} />
             <Route path="/weather" element={<Weather />} />
             <Route path="/account" element={<Account />} />
+            {/* TEMPORARY / TEST-ONLY — P2M-2 authenticated dispatch harness. Not in navigation. Remove after dispatch testing. */}
+            <Route path="/dispatch-test" element={<DispatchTestHarness />} />
           </Route>
         </Routes>
       </BrowserRouter>
