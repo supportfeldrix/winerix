@@ -39,6 +39,8 @@ import Customers from './pages/Customers';
 import CustomerProfile from './pages/CustomerProfile';
 import SalesOrders from './pages/SalesOrders';
 import SalesOrderProfile from './pages/SalesOrderProfile';
+import Dispatches from './pages/Dispatches';
+import DispatchProfile from './pages/DispatchProfile';
 import Machinery from './pages/Machinery';
 import MachineryProfile from './components/machinery/MachineryProfile';
 import Finance from './pages/Finance';
@@ -286,6 +288,8 @@ function App() {
             <Route path="/customers/:id" element={<CustomerProfile />} />
             <Route path="/sales-orders" element={<SalesOrders />} />
             <Route path="/sales-orders/:id" element={<SalesOrderProfile />} />
+            <Route path="/dispatches" element={<Dispatches />} />
+            <Route path="/dispatches/:id" element={<DispatchProfile />} />
             <Route path="/lab/analytes" element={<LabAnalytes />} />
             <Route path="/lab/samples" element={<LabSamples />} />
             <Route path="/lab/samples/:id" element={<LabSampleProfile />} />
