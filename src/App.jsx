@@ -1,6 +1,6 @@
 import { CssBaseline, ThemeProvider } from '@mui/material';
-import { Box, Typography, Paper, Divider, Stack } from '@mui/material';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { Box, Typography, Paper, Divider, Stack, Button } from '@mui/material';
+import { BrowserRouter, Routes, Route, Link as RouterLink } from 'react-router-dom';
 import { GiGrapes, GiFarmTractor } from 'react-icons/gi';
 import { TbChartBarPopular } from 'react-icons/tb';
 import theme from './theme/theme';
@@ -178,6 +178,30 @@ function LandingPage() {
             label="Harvest Insights"
             color="#D4AF37"
           />
+        </Stack>
+
+        {/* Sign in / Register */}
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} justifyContent="center" sx={{ mt: 4 }}>
+          <Button
+            component={RouterLink}
+            to="/login"
+            variant="contained"
+            color="primary"
+            size="large"
+            sx={{ px: 4 }}
+          >
+            Sign in
+          </Button>
+          <Button
+            component={RouterLink}
+            to="/register"
+            variant="outlined"
+            color="primary"
+            size="large"
+            sx={{ px: 4 }}
+          >
+            Create account
+          </Button>
         </Stack>
       </Paper>
 
