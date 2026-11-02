@@ -41,6 +41,10 @@ import SalesOrders from './pages/SalesOrders';
 import SalesOrderProfile from './pages/SalesOrderProfile';
 import Dispatches from './pages/Dispatches';
 import DispatchProfile from './pages/DispatchProfile';
+import Deliveries from './pages/Deliveries';
+import DeliveryProfile from './pages/DeliveryProfile';
+import Returns from './pages/Returns';
+import ReturnProfile from './pages/ReturnProfile';
 import Machinery from './pages/Machinery';
 import MachineryProfile from './components/machinery/MachineryProfile';
 import Finance from './pages/Finance';
@@ -57,7 +61,6 @@ import Reports from './pages/Reports';
 import AIIntelligence from './pages/AIIntelligence';
 import Weather from './pages/Weather';
 import Account from './pages/Account';
-import DispatchTestHarness from './pages/DispatchTestHarness'; // TEMPORARY / TEST-ONLY (P2M-2)
 import ProtectedRoute from './components/auth/ProtectedRoute';
 
 // Landing page (existing brand shell)
@@ -290,6 +293,10 @@ function App() {
             <Route path="/sales-orders/:id" element={<SalesOrderProfile />} />
             <Route path="/dispatches" element={<Dispatches />} />
             <Route path="/dispatches/:id" element={<DispatchProfile />} />
+            <Route path="/deliveries" element={<Deliveries />} />
+            <Route path="/deliveries/:id" element={<DeliveryProfile />} />
+            <Route path="/returns" element={<Returns />} />
+            <Route path="/returns/:id" element={<ReturnProfile />} />
             <Route path="/lab/analytes" element={<LabAnalytes />} />
             <Route path="/lab/samples" element={<LabSamples />} />
             <Route path="/lab/samples/:id" element={<LabSampleProfile />} />
@@ -306,8 +313,6 @@ function App() {
             <Route path="/ai-intelligence" element={<AIIntelligence />} />
             <Route path="/weather" element={<Weather />} />
             <Route path="/account" element={<Account />} />
-            {/* TEMPORARY / TEST-ONLY — P2M-2 authenticated dispatch harness. Not in navigation. Remove after dispatch testing. */}
-            <Route path="/dispatch-test" element={<DispatchTestHarness />} />
           </Route>
         </Routes>
       </BrowserRouter>

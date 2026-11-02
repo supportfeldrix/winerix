@@ -1,13 +1,14 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
-  Box, Paper, Typography, Chip, Button, Divider, Grid, Skeleton, Alert, Link,
+  Box, Paper, Typography, Chip, Button, Divider, Grid, Skeleton, Alert, Link, Snackbar, CircularProgress,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
 } from '@mui/material';
 import ArrowBackOutlinedIcon from '@mui/icons-material/ArrowBackOutlined';
 import LocalShippingOutlinedIcon from '@mui/icons-material/LocalShippingOutlined';
 import ListAltOutlinedIcon from '@mui/icons-material/ListAltOutlined';
 import AccountTreeOutlinedIcon from '@mui/icons-material/AccountTreeOutlined';
+import AssignmentTurnedInOutlinedIcon from '@mui/icons-material/AssignmentTurnedInOutlined';
 import PageContainer from '../components/layout/PageContainer';
 import { useOrganisation } from '../context/OrganisationContext';
 import { formatDate, formatNumber } from '../components/common/formatters';
@@ -15,6 +16,12 @@ import {
   getDispatch, getDispatchLines, friendlyDispatchError,
   dispatchStatusLabel, dispatchStatusColor,
 } from '../services/dispatchService';
+import {
+  getDeliveriesByDispatch, getDeliveryLines, createDeliveryConfirmation, friendlyDeliveryError,
+  deliveryStatusLabel, deliveryStatusColor, varianceReasonLabel, failureReasonLabel,
+} from '../services/deliveryService';
+
+const DELIVERY_WRITE_ROLES = ['OWNER', 'ADMIN', 'SALES', 'CELLAR'];
 
 // ─────────────────────────────────────────────────────────────────────────────
 // WINERIX — Dispatch profile (P2M-3, read-only)
@@ -55,12 +62,16 @@ function snapshotAddressText(s) {
 function DispatchProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { activeOrgId } = useOrganisation();
+  const { activeOrgId, activeRole } = useOrganisation();
 
   const [dispatch, setDispatch] = useState(null);
   const [lines, setLines] = useState([]);
+  const [deliveries, setDeliveries] = useState([]);
+  const [traceDeliveredQty, setTraceDeliveredQty] = useState(null); // delivered total for the trace node's delivery
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [creatingDelivery, setCreatingDelivery] = useState(false);
+  const [toast, setToast] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true); setError('');
@@ -71,6 +82,21 @@ function DispatchProfile() {
     const { data: lineData, error: lineErr } = await getDispatchLines(id);
     if (lineErr) { setError(friendlyDispatchError(lineErr)); setLoading(false); return; }
     setLines(lineData || []);
+    const { data: delData } = await getDeliveriesByDispatch(id);
+    const dels = delData || [];
+    setDeliveries(dels);
+
+    // The "current relevant delivery" for the traceability node: prefer the
+    // active/confirmed one (pending/delivered/variance); otherwise the most
+    // recent attempt (deliveries are newest-first) so a failed/cancelled attempt
+    // still shows. Full history stays in the Delivery section above.
+    const trace = dels.find((d) => ['pending', 'delivered', 'delivered_with_variance'].includes(d.status)) || dels[0] || null;
+    if (trace) {
+      const { data: dcLines } = await getDeliveryLines(trace.id);
+      setTraceDeliveredQty((dcLines || []).reduce((s, l) => s + (Number(l.deliveredQty) || 0), 0));
+    } else {
+      setTraceDeliveredQty(null);
+    }
     setLoading(false);
   }, [id]);
 
@@ -83,6 +109,24 @@ function DispatchProfile() {
 
   // Total dispatched bottles across all lines (from dispatch_lines.qty_bottles).
   const totalBottles = lines.reduce((sum, l) => sum + (Number(l.qtyBottles) || 0), 0);
+
+  // A dispatch can have at most one active/confirmed delivery (pending/delivered/variance).
+  const activeDelivery = deliveries.find((d) => ['pending', 'delivered', 'delivered_with_variance'].includes(d.status)) || null;
+  const canCreateDelivery =
+    dispatch?.status === 'recorded' && !activeDelivery && DELIVERY_WRITE_ROLES.includes(activeRole);
+
+  // Current relevant delivery for the traceability node (prefer active/confirmed,
+  // else most recent attempt). Full history remains in the Delivery section.
+  const traceDelivery = activeDelivery || deliveries[0] || null;
+
+  async function handleCreateDelivery() {
+    setCreatingDelivery(true); setError('');
+    const { data, error: err } = await createDeliveryConfirmation(id);
+    setCreatingDelivery(false);
+    if (err) { setError(friendlyDeliveryError(err)); return; }
+    setToast('Delivery confirmation created.');
+    if (data?.id) navigate(`/deliveries/${data.id}`);
+  }
 
   return (
     <PageContainer maxWidth={1600} sx={{ px: { xs: 2, sm: 3, md: 4, lg: 5 } }}>
@@ -236,6 +280,63 @@ function DispatchProfile() {
             )}
           </Paper>
 
+          {/* ── Delivery (P2M-5, read-only summary + create action) ── */}
+          <Paper variant="outlined" sx={{ borderRadius: 3, p: { xs: 2.5, md: 3.5 }, mt: 3 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, mb: 2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
+                <Box sx={{ width: 36, height: 36, borderRadius: 1.5, bgcolor: 'background.subtle', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'primary.main' }}><AssignmentTurnedInOutlinedIcon /></Box>
+                <Typography variant="h5" component="h2">Delivery</Typography>
+              </Box>
+              {canCreateDelivery && (
+                <Button
+                  variant="outlined" color="primary" onClick={handleCreateDelivery}
+                  disabled={creatingDelivery}
+                  startIcon={creatingDelivery ? <CircularProgress size={16} /> : null}
+                  sx={{ flexShrink: 0 }}
+                >
+                  Record delivery
+                </Button>
+              )}
+            </Box>
+
+            {deliveries.length === 0 ? (
+              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                {dispatch.status === 'recorded'
+                  ? 'No delivery confirmation yet.'
+                  : 'No delivery confirmation (this dispatch is not in a recorded state).'}
+              </Typography>
+            ) : (
+              <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2, overflowX: 'auto' }}>
+                <Table sx={{ minWidth: 640 }} aria-label="Delivery confirmations">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Delivery #</TableCell>
+                      <TableCell>Status</TableCell>
+                      <TableCell>Delivered At</TableCell>
+                      <TableCell align="right">Open</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {deliveries.map((d) => (
+                      <TableRow key={d.id} hover sx={{ '& .MuiTableCell-root': { py: 1.5 } }}>
+                        <TableCell>
+                          <Link component="button" type="button" underline="hover" onClick={() => navigate(`/deliveries/${d.id}`)} sx={{ fontWeight: 600, textAlign: 'left' }}>
+                            {d.deliveryNumber}
+                          </Link>
+                        </TableCell>
+                        <TableCell><Chip label={deliveryStatusLabel(d.status)} size="small" color={deliveryStatusColor(d.status)} sx={{ fontWeight: 600 }} /></TableCell>
+                        <TableCell><Typography variant="body2" sx={{ color: 'text.secondary' }}>{d.deliveredAt ? formatDate(d.deliveredAt) : '—'}</Typography></TableCell>
+                        <TableCell align="right">
+                          <Button size="small" onClick={() => navigate(`/deliveries/${d.id}`)}>View</Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
+          </Paper>
+
           {/* ── Traceability ── */}
           <Paper variant="outlined" sx={{ borderRadius: 3, p: { xs: 2.5, md: 3.5 }, mt: 3 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, mb: 2 }}>
@@ -259,10 +360,18 @@ function DispatchProfile() {
               <TraceStep label="Dispatch Line" value={`${lines.length}`} />
               <TraceArrow />
               <TraceStep label="Stock Movement" value={lines.length ? (lines[0].movementType || 'dispatch') : '—'} />
+              <TraceArrow />
+              <DeliveryTraceNode
+                delivery={traceDelivery}
+                dispatchedQty={totalBottles}
+                deliveredQty={traceDeliveredQty}
+                onOpen={traceDelivery ? () => navigate(`/deliveries/${traceDelivery.id}`) : undefined}
+              />
             </Box>
           </Paper>
         </>
       )}
+      <Snackbar open={Boolean(toast)} autoHideDuration={4000} onClose={() => setToast('')} message={toast} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }} />
     </PageContainer>
   );
 }
@@ -278,6 +387,62 @@ function TraceStep({ label, value }) {
 
 function TraceArrow() {
   return <Typography sx={{ color: 'text.disabled', fontWeight: 700 }}>→</Typography>;
+}
+
+// Final node of the traceability chain: the current relevant delivery
+// confirmation (or "Not confirmed"). Preserves the TraceStep visual style while
+// carrying delivery number + status + delivered/dispatched + variance/reason.
+function DeliveryTraceNode({ delivery, dispatchedQty, deliveredQty, onOpen }) {
+  if (!delivery) {
+    return (
+      <Box sx={{ px: 1.5, py: 1, borderRadius: 1.5, bgcolor: 'background.subtle', border: '1px dashed', borderColor: 'divider', minWidth: 140 }}>
+        <Typography variant="overline" sx={{ color: 'text.disabled', letterSpacing: '0.06em', display: 'block', lineHeight: 1.4 }}>Delivery</Typography>
+        <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600 }}>Not confirmed</Typography>
+      </Box>
+    );
+  }
+
+  const delivered = deliveredQty == null ? null : deliveredQty;
+  const variance = (delivered != null && dispatchedQty != null) ? dispatchedQty - delivered : null;
+  const showVariance = delivery.status === 'delivered_with_variance' && variance != null && variance > 0;
+
+  const content = (
+    <>
+      <Typography variant="overline" sx={{ color: 'text.disabled', letterSpacing: '0.06em', display: 'block', lineHeight: 1.4 }}>Delivery</Typography>
+      <Typography variant="body2" sx={{ color: 'text.primary', fontWeight: 600 }}>{delivery.deliveryNumber}</Typography>
+      <Box sx={{ mt: 0.5, mb: 0.25 }}>
+        <Chip label={deliveryStatusLabel(delivery.status)} size="small" color={deliveryStatusColor(delivery.status)} sx={{ fontWeight: 600, height: 20 }} />
+      </Box>
+      <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
+        {formatNumber(delivered, { maximumFractionDigits: 0 })} / {formatNumber(dispatchedQty, { maximumFractionDigits: 0 })}
+      </Typography>
+      {showVariance && (
+        <Typography variant="caption" sx={{ color: 'error.main', display: 'block' }}>
+          Variance: {formatNumber(variance, { maximumFractionDigits: 0 })}
+          {delivery.varianceReason ? ` (${varianceReasonLabel(delivery.varianceReason)})` : ''}
+        </Typography>
+      )}
+      {delivery.status === 'failed' && delivery.failureReason && (
+        <Typography variant="caption" sx={{ color: 'error.main', display: 'block' }}>
+          Reason: {failureReasonLabel(delivery.failureReason)}
+        </Typography>
+      )}
+    </>
+  );
+
+  return (
+    <Box
+      onClick={onOpen}
+      sx={{
+        px: 1.5, py: 1, borderRadius: 1.5, bgcolor: 'background.subtle',
+        border: '1px solid', borderColor: 'divider', minWidth: 150,
+        cursor: onOpen ? 'pointer' : 'default',
+        '&:hover': onOpen ? { borderColor: 'primary.main' } : undefined,
+      }}
+    >
+      {content}
+    </Box>
+  );
 }
 
 export default DispatchProfile;

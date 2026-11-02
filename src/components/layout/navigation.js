@@ -38,6 +38,8 @@ import PersonOutlineOutlinedIcon from '@mui/icons-material/PersonOutlineOutlined
 import StorefrontOutlinedIcon from '@mui/icons-material/StorefrontOutlined';
 import ReceiptLongOutlinedIcon from '@mui/icons-material/ReceiptLongOutlined';
 import LocalShippingOutlinedIcon from '@mui/icons-material/LocalShippingOutlined';
+import AssignmentTurnedInOutlinedIcon from '@mui/icons-material/AssignmentTurnedInOutlined';
+import AssignmentReturnOutlinedIcon from '@mui/icons-material/AssignmentReturnOutlined';
 
 // Primary application navigation, grouped by business area. Each group has a
 // short, non-clickable section label and the same item objects (unchanged
@@ -96,6 +98,8 @@ export const MAIN_NAV_GROUPS = [
       { label: 'Customers', path: '/customers', icon: StorefrontOutlinedIcon },
       { label: 'Sales Orders', path: '/sales-orders', icon: ReceiptLongOutlinedIcon },
       { label: 'Dispatches', path: '/dispatches', icon: LocalShippingOutlinedIcon },
+      { label: 'Deliveries', path: '/deliveries', icon: AssignmentTurnedInOutlinedIcon },
+      { label: 'Returns', path: '/returns', icon: AssignmentReturnOutlinedIcon },
     ],
   },
   {

@@ -8,7 +8,7 @@ import {
 } from '../../services/machineryService';
 
 const NO_VINEYARD = '';
-const EMPTY = { name: '', category: '', registration: '', status: 'operational', lastServiceDate: '', vineyardId: NO_VINEYARD };
+const EMPTY = { name: '', category: '', registration: '', status: 'operational', lastServiceDate: '', vineyardId: NO_VINEYARD, purchaseCost: '', purchaseDate: '' };
 
 function MachineryForm({ open, record, vineyardOptions, saving = false, onSubmit, onClose }) {
   const isEdit = Boolean(record);
@@ -27,6 +27,8 @@ function MachineryForm({ open, record, vineyardOptions, saving = false, onSubmit
         status: record.status || 'operational',
         lastServiceDate: record.lastServiceDate || '',
         vineyardId: record.vineyardId || NO_VINEYARD,
+        purchaseCost: record.purchaseCost ?? '',
+        purchaseDate: record.purchaseDate || '',
       });
     } else setValues(EMPTY);
     setErrors({});
@@ -65,6 +67,10 @@ function MachineryForm({ open, record, vineyardOptions, saving = false, onSubmit
       status: values.status,
       lastServiceDate: values.lastServiceDate || null,
       vineyardId: values.vineyardId || null,
+      // Purchase cost/date only apply on CREATE (auto-posts an expense). On edit
+      // they are ignored by the update path, so only send them when adding.
+      purchaseCost: !isEdit ? (values.purchaseCost === '' ? null : values.purchaseCost) : undefined,
+      purchaseDate: !isEdit ? (values.purchaseDate || null) : undefined,
     });
   };
 
@@ -86,6 +92,15 @@ function MachineryForm({ open, record, vineyardOptions, saving = false, onSubmit
           </TextField>
           <TextField label="Last Service Date" type="date" value={values.lastServiceDate} onChange={setField('lastServiceDate')}
             fullWidth disabled={saving} InputLabelProps={{ shrink: true }} helperText="Optional" />
+          {!isEdit && (
+            <>
+              <TextField label="Purchase Cost" type="number" value={values.purchaseCost} onChange={setField('purchaseCost')}
+                fullWidth disabled={saving} inputProps={{ min: 0, step: '0.01' }}
+                helperText="Optional. If entered, an equipment expense is recorded in Finance automatically." />
+              <TextField label="Purchase Date" type="date" value={values.purchaseDate} onChange={setField('purchaseDate')}
+                fullWidth disabled={saving} InputLabelProps={{ shrink: true }} helperText="Optional (defaults to today for the expense)." />
+            </>
+          )}
           <TextField label="Status" value={values.status} onChange={setField('status')}
             error={Boolean(errors.status)} helperText={errors.status || ' '} fullWidth select required disabled={saving}>
             {MACHINERY_STATUSES.map((s) => <MenuItem key={s.value} value={s.value}>{s.label}</MenuItem>)}
